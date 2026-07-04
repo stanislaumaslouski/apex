@@ -17,7 +17,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Копируем код приложения
-COPY backend/app /app/app
+COPY app /app/app
 
 # Копируем .env.example как .env (если он существует)
 # Или создаем .env с значениями по умолчанию

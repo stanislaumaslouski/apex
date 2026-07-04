@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from backend.app import models, schemas
+from app import schemas, models
 
 
 def get_client(db: Session, client_id: int):

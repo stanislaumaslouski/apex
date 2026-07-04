@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
-from backend.app import crud, schemas, database
+from app import crud, schemas, database
 import logging
 import sys
 
