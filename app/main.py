@@ -3,17 +3,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
 from app import crud, schemas, models, database
+import logging
 
-# Создаем таблицы
-models.Base.metadata.create_all(bind=database.engine)
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="APEX CRM API",
+    title="CRM API",
     version="1.0.0",
-    description=""
+    description="CRM система для управления клиентами на Supabase"
 )
 
-# Добавляем CORS для разработки
+# Добавляем CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -22,42 +24,79 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Создаем таблицы при старте
+@app.on_event("startup")
+async def startup():
+    try:
+        logger.info("Creating database tables...")
+        database.Base.metadata.create_all(bind=database.engine)
+        logger.info("Database tables created successfully")
+    except Exception as e:
+        logger.error(f"Error creating tables: {e}")
+        # Не падаем, а логируем ошибку
+        # Таблицы могут уже существовать
+
 @app.get("/")
 def read_root():
     return {
-        "message": "CRM API is running",
+        "message": "CRM API is running on Supabase",
         "version": "1.0.0",
-        "endpoints": {
-            "clients": "/clients",
-            "client_by_id": "/clients/{id}"
-        }
+        "database": "connected" if database.check_db_connection() else "disconnected"
     }
 
 @app.get("/health")
 def health_check():
-    return {"status": "healthy"}
+    try:
+        if database.check_db_connection():
+            return {
+                "status": "healthy",
+                "database": "connected",
+                "message": "All systems operational"
+            }
+        else:
+            return {
+                "status": "unhealthy",
+                "database": "disconnected",
+                "message": "Cannot connect to database"
+            }
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return {
+            "status": "unhealthy",
+            "database": "disconnected",
+            "error": str(e)
+        }
 
 # CREATE - Создать клиента
 @app.post("/clients/", response_model=schemas.ClientResponse, status_code=status.HTTP_201_CREATED)
 def create_client(client: schemas.ClientCreate, db: Session = Depends(database.get_db)):
-    # Проверяем, не существует ли клиент с таким email
-    existing_client = crud.get_client_by_email(db, client.email)
-    if existing_client:
+    try:
+        # Проверяем, не существует ли клиент с таким email
+        existing_client = crud.get_client_by_email(db, client.email)
+        if existing_client:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+        return crud.create_client(db=db, client=client)
+    except Exception as e:
+        logger.error(f"Error creating client: {e}")
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
         )
-    return crud.create_client(db=db, client=client)
 
 # READ - Получить всех клиентов
 @app.get("/clients/", response_model=List[schemas.ClientResponse])
-def read_clients(
-    skip: int = 0,
-    limit: int = 100,
-    db: Session = Depends(database.get_db)
-):
-    clients = crud.get_clients(db, skip=skip, limit=limit)
-    return clients
+def read_clients(skip: int = 0, limit: int = 100, db: Session = Depends(database.get_db)):
+    try:
+        return crud.get_clients(db, skip=skip, limit=limit)
+    except Exception as e:
+        logger.error(f"Error getting clients: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 # READ - Получить одного клиента по ID
 @app.get("/clients/{client_id}", response_model=schemas.ClientResponse)
