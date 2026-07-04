@@ -4,6 +4,7 @@ from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
 import logging
+import urllib.parse
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -11,67 +12,78 @@ logger = logging.getLogger(__name__)
 load_dotenv()
 
 
-# Пробуем получить DATABASE_URL из разных источников
+def clean_database_url(url):
+    """Очищает строку подключения от нестандартных параметров"""
+    if not url:
+        return url
+
+    # Удаляем параметр pgbouncer если он есть
+    if 'pgbouncer=true' in url:
+        url = url.replace('&pgbouncer=true', '')
+        url = url.replace('?pgbouncer=true&', '?')
+        url = url.replace('?pgbouncer=true', '')
+        logger.info("Removed pgbouncer parameter from connection string")
+
+    # Конвертируем postgres:// в postgresql://
+    if url.startswith('postgres://'):
+        url = url.replace('postgres://', 'postgresql://', 1)
+        logger.info("Converted postgres:// to postgresql://")
+
+    # Убеждаемся, что sslmode=require присутствует
+    if 'sslmode=require' not in url and 'localhost' not in url:
+        if '?' in url:
+            url += '&sslmode=require'
+        else:
+            url += '?sslmode=require'
+        logger.info("Added sslmode=require")
+
+    return url
+
+
 def get_database_url():
-    # Сначала проверяем DATABASE_URL (стандартное имя)
+    """Получает и очищает DATABASE_URL"""
+    # Сначала проверяем DATABASE_URL
     url = os.getenv("DATABASE_URL")
     if url:
         logger.info("Using DATABASE_URL")
-        return url
+        return clean_database_url(url)
 
-    # Затем проверяем apex_POSTGRES_PRISMA_URL
+    # Затем apex_POSTGRES_PRISMA_URL
     url = os.getenv("apex_POSTGRES_PRISMA_URL")
     if url:
         logger.info("Using apex_POSTGRES_PRISMA_URL")
-        return url
+        return clean_database_url(url)
 
     # Затем apex_POSTGRES_URL
     url = os.getenv("apex_POSTGRES_URL")
     if url:
         logger.info("Using apex_POSTGRES_URL")
-        return url
+        return clean_database_url(url)
 
     # Затем apex_POSTGRES_URL_NON_POOLING
     url = os.getenv("apex_POSTGRES_URL_NON_POOLING")
     if url:
         logger.info("Using apex_POSTGRES_URL_NON_POOLING")
-        return url
+        return clean_database_url(url)
 
-    # Если ничего не найдено, логируем ошибку
-    logger.error("No database URL found in environment variables!")
-    logger.info(f"Available env vars: {[k for k in os.environ.keys() if 'POSTGRES' in k or 'DATABASE' in k]}")
+    logger.error("No database URL found!")
     return None
 
 
 DATABASE_URL = get_database_url()
 
 if not DATABASE_URL:
-    # Создаем фейковый URL для предотвращения ошибки импорта
-    # Приложение запустится, но будет показывать ошибку подключения
     DATABASE_URL = "postgresql://placeholder:placeholder@localhost:5432/placeholder"
     logger.error("Using placeholder DATABASE_URL - database will not work!")
 
-# Конвертируем postgres:// в postgresql://
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-    logger.info("Converted postgres:// to postgresql://")
-
-# Добавляем sslmode если нужно
-if "sslmode=require" not in DATABASE_URL and "localhost" not in DATABASE_URL:
-    if "?" in DATABASE_URL:
-        DATABASE_URL += "&sslmode=require"
-    else:
-        DATABASE_URL += "?sslmode=require"
-    logger.info("Added sslmode=require")
-
-# Скрываем пароль в логах
-if "@" in DATABASE_URL:
-    parts = DATABASE_URL.split("@")
+# Логируем информацию о подключении (без пароля)
+if '@' in DATABASE_URL and 'placeholder' not in DATABASE_URL:
+    parts = DATABASE_URL.split('@')
     logger.info(f"Connecting to: {parts[0].split(':')[0]}:***@{parts[1][:50]}...")
 else:
-    logger.info(f"Connecting to: {DATABASE_URL[:50]}...")
+    logger.info(f"Using database URL (cleaned)")
 
-# Создаем engine с настройками для Vercel
+# Создаем engine
 try:
     engine = create_engine(
         DATABASE_URL,
@@ -86,7 +98,7 @@ try:
             "keepalives_idle": 30,
             "keepalives_interval": 10,
             "keepalives_count": 5,
-        }
+        } if 'localhost' not in DATABASE_URL else {}
     )
     logger.info("Database engine created successfully")
 except Exception as e:
