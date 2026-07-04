@@ -1,5 +1,8 @@
+[tool.vercel]
+entrypoint = "backend.app.main:app"
+
 [project]
-name = "apex"
+name = "apex-backend"
 version = "0.1.0"
 dependencies = [
     "fastapi==0.115.6",
