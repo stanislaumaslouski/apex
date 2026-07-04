@@ -1,47 +1,65 @@
 import React, { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { ClientList } from './components/ClientList';
 import { ClientForm } from './components/ClientForm';
+import { ClientDetail } from './components/ClientDetail';
 
 function App() {
-  const [showForm, setShowForm] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  const handleSuccess = () => {
-    setShowForm(false);
-    setRefreshKey(prev => prev + 1);
-  };
-
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="bg-white shadow rounded-lg p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl font-bold text-gray-900">
-                CRM - Управление клиентами
-              </h1>
-              <button
-                onClick={() => setShowForm(!showForm)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                {showForm ? 'Закрыть форму' : '+ Добавить клиента'}
-              </button>
-            </div>
-
-            {showForm && (
-              <div className="mb-8 p-4 border border-gray-200 rounded-lg">
-                <h2 className="text-lg font-medium text-gray-900 mb-4">
-                  Новый клиент
-                </h2>
-                <ClientForm onSuccess={handleSuccess} onCancel={() => setShowForm(false)} />
+    <Router>
+      <div className="min-h-screen bg-gray-100">
+        <nav className="bg-white shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between h-16">
+              <div className="flex space-x-8">
+                <Link to="/" className="inline-flex items-center px-1 pt-1 text-gray-900">
+                  <span className="text-xl font-bold">CRM</span>
+                </Link>
+                <Link to="/" className="inline-flex items-center px-1 pt-1 text-gray-500 hover:text-gray-900">
+                  Клиенты
+                </Link>
+                <Link to="/clients/new" className="inline-flex items-center px-1 pt-1 text-gray-500 hover:text-gray-900">
+                  + Добавить
+                </Link>
               </div>
-            )}
+            </div>
+          </div>
+        </nav>
 
-            <ClientList key={refreshKey} />
+        <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+          <div className="px-4 py-6 sm:px-0">
+            <div className="bg-white shadow rounded-lg p-6">
+              <Routes>
+                <Route path="/" element={<ClientList />} />
+                <Route path="/clients/new" element={<ClientFormWrapper />} />
+                <Route path="/clients/:id/edit" element={<ClientFormWrapper />} />
+                <Route path="/clients/:id" element={<ClientDetail />} />
+              </Routes>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </Router>
+  );
+}
+
+// Обертка для формы с навигацией
+function ClientFormWrapper() {
+  const navigate = useNavigate();
+
+  const handleSuccess = () => {
+    navigate('/');
+  };
+
+  const handleCancel = () => {
+    navigate('/');
+  };
+
+  return (
+    <ClientForm
+      onSuccess={handleSuccess}
+      onCancel={handleCancel}
+    />
   );
 }
 

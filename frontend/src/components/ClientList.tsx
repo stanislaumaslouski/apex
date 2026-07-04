@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Client } from '../types';
 import { clientsApi } from '../api/clients';
 
@@ -25,7 +26,8 @@ export const ClientList: React.FC = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!window.confirm('Вы уверены, что хотите удалить этого клиента?')) return;
 
     try {
@@ -80,7 +82,11 @@ export const ClientList: React.FC = () => {
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {clients.map((client) => (
-            <tr key={client.id} className="hover:bg-gray-50">
+            <tr
+              key={client.id}
+              className="hover:bg-gray-50 cursor-pointer"
+              onClick={() => window.location.href = `/clients/${client.id}`}
+            >
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                 {client.id}
               </td>
@@ -105,8 +111,15 @@ export const ClientList: React.FC = () => {
                 </span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <Link
+                  to={`/clients/${client.id}/edit`}
+                  className="text-blue-600 hover:text-blue-900 mr-3"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Редактировать
+                </Link>
                 <button
-                  onClick={() => handleDelete(client.id)}
+                  onClick={(e) => handleDelete(client.id, e)}
                   className="text-red-600 hover:text-red-900"
                 >
                   Удалить
