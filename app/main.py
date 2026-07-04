@@ -4,10 +4,17 @@ from sqlalchemy.orm import Session
 from typing import List
 from app import crud, schemas, models, database
 import logging
+import sys
 
-logging.basicConfig(level=logging.INFO)
+# Настройка логирования
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    stream=sys.stdout
+)
 logger = logging.getLogger(__name__)
 
+# Инициализация приложения
 app = FastAPI(
     title="CRM API",
     version="1.0.0",
@@ -23,24 +30,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
+# Создаем таблицы при старте с обработкой ошибок
 @app.on_event("startup")
 async def startup():
     try:
-        logger.info("Creating database tables...")
-        database.Base.metadata.create_all(bind=database.engine)
-        logger.info("Database tables created successfully")
+        logger.info("Starting up...")
+        # Проверяем подключение к БД
+        if database.check_db_connection():
+            logger.info("Database connection successful")
+            # Создаем таблицы
+            database.Base.metadata.create_all(bind=database.engine)
+            logger.info("Database tables created/verified")
+        else:
+            logger.error("Database connection failed during startup")
     except Exception as e:
-        logger.error(f"Error creating tables: {e}")
-        # Не падаем, а логируем ошибку
-        # Таблицы могут уже существовать
+        logger.error(f"Startup error: {e}")
+        # Не падаем, чтобы приложение могло запуститься
 
 @app.get("/")
 def read_root():
+    db_status = "connected" if database.check_db_connection() else "disconnected"
     return {
         "message": "CRM API is running on Supabase",
         "version": "1.0.0",
-        "database": "connected" if database.check_db_connection() else "disconnected"
+        "database": db_status,
+        "python_version": sys.version
     }
 
 @app.get("/health")
@@ -70,7 +84,6 @@ def health_check():
 @app.post("/clients/", response_model=schemas.ClientResponse, status_code=status.HTTP_201_CREATED)
 def create_client(client: schemas.ClientCreate, db: Session = Depends(database.get_db)):
     try:
-        # Проверяем, не существует ли клиент с таким email
         existing_client = crud.get_client_by_email(db, client.email)
         if existing_client:
             raise HTTPException(
@@ -78,11 +91,13 @@ def create_client(client: schemas.ClientCreate, db: Session = Depends(database.g
                 detail="Email already registered"
             )
         return crud.create_client(db=db, client=client)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error creating client: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            detail=f"Error creating client: {str(e)}"
         )
 
 # READ - Получить всех клиентов
@@ -94,7 +109,7 @@ def read_clients(skip: int = 0, limit: int = 100, db: Session = Depends(database
         logger.error(f"Error getting clients: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            detail=f"Error getting clients: {str(e)}"
         )
 
 # READ - Получить одного клиента по ID

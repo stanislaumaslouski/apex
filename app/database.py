@@ -12,8 +12,7 @@ logger = logging.getLogger(__name__)
 
 load_dotenv()
 
-# Получаем DATABASE_URL из переменных окружения
-# Используем URL для пулинга (порт 6543)
+# Получаем DATABASE_URL
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Если DATABASE_URL не установлен, используем apex_POSTGRES_PRISMA_URL
@@ -31,6 +30,11 @@ if not DATABASE_URL:
     logger.error("No database URL found in environment variables!")
     raise ValueError("DATABASE_URL environment variable is required")
 
+# Убеждаемся, что используем правильный протокол
+# Заменяем postgres:// на postgresql:// если нужно
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 # Убеждаемся, что sslmode=require присутствует
 if "sslmode=require" not in DATABASE_URL:
     if "?" in DATABASE_URL:
@@ -40,13 +44,13 @@ if "sslmode=require" not in DATABASE_URL:
 
 logger.info(f"Connecting to Supabase: {DATABASE_URL.split('@')[1] if '@' in DATABASE_URL else 'database'}")
 
-# Настройка движка для Supabase
+# Явно указываем драйвер для PostgreSQL
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,
     pool_recycle=3600,
-    pool_size=5,
-    max_overflow=10,
+    pool_size=1,  # Уменьшаем для бессерверной среды
+    max_overflow=2,
     echo=False,
     connect_args={
         "connect_timeout": 30,
