@@ -5,7 +5,6 @@ from typing import List
 from app import crud, schemas, models, database
 import logging
 
-# Настройка логирования
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -24,7 +23,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Создаем таблицы при старте
+
 @app.on_event("startup")
 async def startup():
     try:
