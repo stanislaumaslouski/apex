@@ -16,9 +16,9 @@ logger = logging.getLogger(__name__)
 
 # Инициализация приложения
 app = FastAPI(
-    title="CRM API",
-    version="1.0.0",
-    description="CRM система для управления клиентами на Supabase"
+    title="APEX CRM API",
+    version="0.1.0",
+    description=""
 )
 
 # Добавляем CORS
