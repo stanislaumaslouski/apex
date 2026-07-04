@@ -4,7 +4,6 @@ from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
 import logging
-import urllib.parse
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO)
@@ -31,7 +30,6 @@ if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable is required")
 
 # Убеждаемся, что используем правильный протокол
-# Заменяем postgres:// на postgresql:// если нужно
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
@@ -42,15 +40,15 @@ if "sslmode=require" not in DATABASE_URL:
     else:
         DATABASE_URL += "?sslmode=require"
 
-logger.info(f"Connecting to Supabase: {DATABASE_URL.split('@')[1] if '@' in DATABASE_URL else 'database'}")
+logger.info(f"Connecting to database")
 
-# Явно указываем драйвер для PostgreSQL
+# Создаем engine с правильными настройками для Vercel
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,
-    pool_recycle=3600,
-    pool_size=1,  # Уменьшаем для бессерверной среды
-    max_overflow=2,
+    pool_recycle=300,
+    pool_size=1,
+    max_overflow=0,
     echo=False,
     connect_args={
         "connect_timeout": 30,
