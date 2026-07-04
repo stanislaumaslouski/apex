@@ -1,6 +1,5 @@
 from sqlalchemy.orm import Session
-from app import models, schemas
-from typing import List, Optional
+from backend.app import models, schemas
 
 
 def get_client(db: Session, client_id: int):
