@@ -29,14 +29,19 @@ app = FastAPI(
 # CORS настройки
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://crmapex.vercel.app",
+        "https://apex-steel-ten.vercel.app",
+        "http://localhost:3000",
+        "http://localhost:8000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-# ============ МАРШРУТЫ БЕЗ /api (для обратной совместимости) ============
+# ============ МАРШРУТЫ БЕЗ /api (для прямых запросов) ============
 
 @app.get("/")
 def root():
@@ -68,12 +73,59 @@ def api_health():
     return {"status": "healthy"}
 
 
-# ============ АВТОРИЗАЦИЯ ============
+# ============ АВТОРИЗАЦИЯ (оба варианта) ============
 
+# Регистрация без /api
+@app.post("/auth/register", response_model=schemas.UserResponse, status_code=status.HTTP_201_CREATED)
+def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
+    return register_logic(user, db)
+
+
+# Регистрация с /api
 @app.post("/api/auth/register", response_model=schemas.UserResponse, status_code=status.HTTP_201_CREATED)
 def api_register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
+    return register_logic(user, db)
+
+
+# Логин без /api
+@app.post("/auth/login", response_model=schemas.Token)
+def login(
+        form_data: OAuth2PasswordRequestForm = Depends(),
+        db: Session = Depends(database.get_db)
+):
+    return login_logic(form_data, db)
+
+
+# Логин с /api
+@app.post("/api/auth/login", response_model=schemas.Token)
+def api_login(
+        form_data: OAuth2PasswordRequestForm = Depends(),
+        db: Session = Depends(database.get_db)
+):
+    return login_logic(form_data, db)
+
+
+# Получение информации о пользователе без /api
+@app.get("/auth/me", response_model=schemas.UserResponse)
+async def get_current_user_info(
+        current_user: models.User = Depends(auth.get_current_active_user)
+):
+    return current_user
+
+
+# Получение информации о пользователе с /api
+@app.get("/api/auth/me", response_model=schemas.UserResponse)
+async def api_get_current_user_info(
+        current_user: models.User = Depends(auth.get_current_active_user)
+):
+    return current_user
+
+
+# ============ ЛОГИКА ДЛЯ АВТОРИЗАЦИИ ============
+
+def register_logic(user: schemas.UserCreate, db: Session):
     """
-    Регистрация нового пользователя
+    Логика регистрации пользователя
     """
     # Проверяем существование пользователя
     existing_user = auth.get_user_by_username(db, user.username)
@@ -101,13 +153,9 @@ def api_register(user: schemas.UserCreate, db: Session = Depends(database.get_db
     return db_user
 
 
-@app.post("/api/auth/login", response_model=schemas.Token)
-def api_login(
-        form_data: OAuth2PasswordRequestForm = Depends(),
-        db: Session = Depends(database.get_db)
-):
+def login_logic(form_data: OAuth2PasswordRequestForm, db: Session):
     """
-    Вход в систему. Возвращает JWT токен.
+    Логика входа пользователя
     """
     user = auth.authenticate_user(db, form_data.username, form_data.password)
     if not user:
@@ -130,29 +178,116 @@ def api_login(
     }
 
 
-@app.get("/api/auth/me", response_model=schemas.UserResponse)
-async def api_get_current_user_info(
+# ============ CRUD ДЛЯ КЛИЕНТОВ (оба варианта) ============
+
+# CREATE - Создать клиента (без /api)
+@app.post("/clients/", response_model=schemas.ClientResponse, status_code=status.HTTP_201_CREATED)
+def create_client(
+        client: schemas.ClientCreate,
+        db: Session = Depends(database.get_db),
         current_user: models.User = Depends(auth.get_current_active_user)
 ):
-    """
-    Получение информации о текущем авторизованном пользователе
-    """
-    return current_user
+    return create_client_logic(client, db)
 
 
-# ============ CRUD ДЛЯ КЛИЕНТОВ (ЗАЩИЩЕННЫЕ) ============
-
+# CREATE - Создать клиента (с /api)
 @app.post("/api/clients/", response_model=schemas.ClientResponse, status_code=status.HTTP_201_CREATED)
 def api_create_client(
         client: schemas.ClientCreate,
         db: Session = Depends(database.get_db),
         current_user: models.User = Depends(auth.get_current_active_user)
 ):
-    """
-    Создание нового клиента. Требуется авторизация.
-    """
+    return create_client_logic(client, db)
+
+
+# READ - Получить всех клиентов (без /api)
+@app.get("/clients/", response_model=List[schemas.ClientResponse])
+def read_clients(
+        skip: int = 0,
+        limit: int = 100,
+        db: Session = Depends(database.get_db),
+        current_user: models.User = Depends(auth.get_current_active_user)
+):
+    return read_clients_logic(skip, limit, db)
+
+
+# READ - Получить всех клиентов (с /api)
+@app.get("/api/clients/", response_model=List[schemas.ClientResponse])
+def api_read_clients(
+        skip: int = 0,
+        limit: int = 100,
+        db: Session = Depends(database.get_db),
+        current_user: models.User = Depends(auth.get_current_active_user)
+):
+    return read_clients_logic(skip, limit, db)
+
+
+# READ - Получить одного клиента по ID (без /api)
+@app.get("/clients/{client_id}", response_model=schemas.ClientResponse)
+def read_client(
+        client_id: int,
+        db: Session = Depends(database.get_db),
+        current_user: models.User = Depends(auth.get_current_active_user)
+):
+    return read_client_logic(client_id, db)
+
+
+# READ - Получить одного клиента по ID (с /api)
+@app.get("/api/clients/{client_id}", response_model=schemas.ClientResponse)
+def api_read_client(
+        client_id: int,
+        db: Session = Depends(database.get_db),
+        current_user: models.User = Depends(auth.get_current_active_user)
+):
+    return read_client_logic(client_id, db)
+
+
+# UPDATE - Обновить клиента (без /api)
+@app.put("/clients/{client_id}", response_model=schemas.ClientResponse)
+def update_client(
+        client_id: int,
+        client_update: schemas.ClientUpdate,
+        db: Session = Depends(database.get_db),
+        current_user: models.User = Depends(auth.get_current_active_user)
+):
+    return update_client_logic(client_id, client_update, db)
+
+
+# UPDATE - Обновить клиента (с /api)
+@app.put("/api/clients/{client_id}", response_model=schemas.ClientResponse)
+def api_update_client(
+        client_id: int,
+        client_update: schemas.ClientUpdate,
+        db: Session = Depends(database.get_db),
+        current_user: models.User = Depends(auth.get_current_active_user)
+):
+    return update_client_logic(client_id, client_update, db)
+
+
+# DELETE - Удалить клиента (без /api)
+@app.delete("/clients/{client_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_client(
+        client_id: int,
+        db: Session = Depends(database.get_db),
+        current_user: models.User = Depends(auth.get_current_active_user)
+):
+    return delete_client_logic(client_id, db)
+
+
+# DELETE - Удалить клиента (с /api)
+@app.delete("/api/clients/{client_id}", status_code=status.HTTP_204_NO_CONTENT)
+def api_delete_client(
+        client_id: int,
+        db: Session = Depends(database.get_db),
+        current_user: models.User = Depends(auth.get_current_active_user)
+):
+    return delete_client_logic(client_id, db)
+
+
+# ============ ЛОГИКА ДЛЯ КЛИЕНТОВ ============
+
+def create_client_logic(client: schemas.ClientCreate, db: Session):
     try:
-        # Проверяем, не существует ли клиент с таким email
         existing_client = crud.get_client_by_email(db, client.email)
         if existing_client:
             raise HTTPException(
@@ -170,19 +305,9 @@ def api_create_client(
         )
 
 
-@app.get("/api/clients/", response_model=List[schemas.ClientResponse])
-def api_read_clients(
-        skip: int = 0,
-        limit: int = 100,
-        db: Session = Depends(database.get_db),
-        current_user: models.User = Depends(auth.get_current_active_user)
-):
-    """
-    Получение списка всех клиентов. Требуется авторизация.
-    """
+def read_clients_logic(skip: int, limit: int, db: Session):
     try:
-        clients = crud.get_clients(db, skip=skip, limit=limit)
-        return clients
+        return crud.get_clients(db, skip=skip, limit=limit)
     except Exception as e:
         logger.error(f"Error getting clients: {e}")
         raise HTTPException(
@@ -191,15 +316,7 @@ def api_read_clients(
         )
 
 
-@app.get("/api/clients/{client_id}", response_model=schemas.ClientResponse)
-def api_read_client(
-        client_id: int,
-        db: Session = Depends(database.get_db),
-        current_user: models.User = Depends(auth.get_current_active_user)
-):
-    """
-    Получение клиента по ID. Требуется авторизация.
-    """
+def read_client_logic(client_id: int, db: Session):
     client = crud.get_client(db, client_id=client_id)
     if not client:
         raise HTTPException(
@@ -209,16 +326,7 @@ def api_read_client(
     return client
 
 
-@app.put("/api/clients/{client_id}", response_model=schemas.ClientResponse)
-def api_update_client(
-        client_id: int,
-        client_update: schemas.ClientUpdate,
-        db: Session = Depends(database.get_db),
-        current_user: models.User = Depends(auth.get_current_active_user)
-):
-    """
-    Обновление клиента. Требуется авторизация.
-    """
+def update_client_logic(client_id: int, client_update: schemas.ClientUpdate, db: Session):
     client = crud.update_client(db, client_id=client_id, client_update=client_update)
     if not client:
         raise HTTPException(
@@ -228,15 +336,7 @@ def api_update_client(
     return client
 
 
-@app.delete("/api/clients/{client_id}", status_code=status.HTTP_204_NO_CONTENT)
-def api_delete_client(
-        client_id: int,
-        db: Session = Depends(database.get_db),
-        current_user: models.User = Depends(auth.get_current_active_user)
-):
-    """
-    Удаление клиента. Требуется авторизация.
-    """
+def delete_client_logic(client_id: int, db: Session):
     client = crud.delete_client(db, client_id=client_id)
     if not client:
         raise HTTPException(
@@ -253,19 +353,16 @@ async def startup():
     try:
         logger.info("Starting up...")
 
-        # Проверяем переменные окружения
         db_url = os.getenv("DATABASE_URL") or os.getenv("apex_POSTGRES_PRISMA_URL")
         if db_url:
             logger.info("DATABASE_URL found")
         else:
             logger.warning("DATABASE_URL not found in environment variables!")
 
-        # Создаем таблицы
         logger.info("Creating database tables...")
         models.Base.metadata.create_all(bind=database.engine)
         logger.info("Database tables created/verified successfully")
 
-        # Проверяем подключение
         if database.check_db_connection():
             logger.info("Database connection successful")
         else:
