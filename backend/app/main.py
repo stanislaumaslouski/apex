@@ -32,8 +32,9 @@ app.add_middleware(
         "http://localhost:8000"
     ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # ============ ПОДКЛЮЧЕНИЕ РОУТЕРОВ ============
