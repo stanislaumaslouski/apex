@@ -6,7 +6,7 @@
     "build": "cd frontend && npm install && npm run build",
     "vercel-build": "npm run build"
   },
-  "engines": {
-    "node": ">=18.0.0"
+  "vercel": {
+    "outputDirectory": "frontend/build"
   }
 }
