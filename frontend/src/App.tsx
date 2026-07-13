@@ -59,8 +59,6 @@ function Navigation() {
 }
 
 function AppContent() {
-  const { isAuthenticated } = useAuth();
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#1A1A1A] via-[#2D2D2D] to-[#1A1A1A]">
       <Navigation />
