@@ -13,16 +13,16 @@ COPY requirements.txt .
 # Устанавливаем зависимости Python
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копируем код (копируем содержимое app в /app)
-COPY ./app /app
+# Копируем код приложения
+COPY ./app /app/app
 
 # Создаем __init__.py
-RUN touch /app/__init__.py
+RUN touch /app/app/__init__.py
 
-# Создаем пользователя
+# Создаем пользователя для запуска
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
 EXPOSE 8000
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
