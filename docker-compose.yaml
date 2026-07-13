@@ -22,8 +22,8 @@ services:
 
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: crm_backend
     ports:
       - "8000:8000"
@@ -31,13 +31,10 @@ services:
       DATABASE_URL: postgresql://postgres:password@postgres:5432/crm_db
       SECRET_KEY: your-super-secret-key-for-development
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
-      PYTHONUNBUFFERED: 1
-    depends_on:
-      postgres:
-        condition: service_healthy
+      PYTHONPATH: /app  # Добавляем путь
     volumes:
-      - ./backend/app:/app/app
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      - ./backend:/app/backend
+    command: uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
     networks:
       - crm_network
 
