@@ -1,6 +1,10 @@
 from sqlalchemy.orm import Session
-from app import schemas, models
+from app import models, schemas
+from app.auth import get_password_hash
+from typing import Optional
 
+
+# ============ CRUD ДЛЯ КЛИЕНТОВ ============
 
 def get_client(db: Session, client_id: int):
     return db.query(models.Client).filter(models.Client.id == client_id).first()
@@ -44,3 +48,40 @@ def delete_client(db: Session, client_id: int):
     db.delete(db_client)
     db.commit()
     return db_client
+
+
+# ============ CRUD ДЛЯ ПОЛЬЗОВАТЕЛЕЙ ============
+
+def get_user_by_username(db: Session, username: str):
+    return db.query(models.User).filter(models.User.username == username).first()
+
+
+def get_user_by_email(db: Session, email: str):
+    return db.query(models.User).filter(models.User.email == email).first()
+
+
+def get_user_by_id(db: Session, user_id: int):
+    return db.query(models.User).filter(models.User.id == user_id).first()
+
+
+def create_user(db: Session, user: schemas.UserCreate):
+    # Проверяем существование
+    existing_user = get_user_by_username(db, user.username)
+    if existing_user:
+        return None
+
+    existing_email = get_user_by_email(db, user.email)
+    if existing_email:
+        return None
+
+    # Хэшируем пароль
+    hashed_password = get_password_hash(user.password)
+    db_user = models.User(
+        username=user.username,
+        email=user.email,
+        hashed_password=hashed_password
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user

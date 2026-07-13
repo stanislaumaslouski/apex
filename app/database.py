@@ -1,118 +1,117 @@
+import os
 from sqlalchemy import create_engine, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import os
-from dotenv import load_dotenv
 import logging
-import urllib.parse
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-load_dotenv()
+
+# ============ ПОЛУЧЕНИЕ СТРОКИ ПОДКЛЮЧЕНИЯ ============
+
+def get_database_url():
+    """Определяет правильную строку подключения в зависимости от окружения"""
+
+    # 1. Проверяем переменные окружения (приоритет)
+    url = os.getenv("DATABASE_URL")
+    if url:
+        logger.info("Using DATABASE_URL from environment")
+        return url
+
+    # 2. Для Vercel с Supabase
+    url = os.getenv("apex_POSTGRES_PRISMA_URL")
+    if url:
+        logger.info("Using apex_POSTGRES_PRISMA_URL")
+        return url
+
+    url = os.getenv("apex_POSTGRES_URL")
+    if url:
+        logger.info("Using apex_POSTGRES_URL")
+        return url
+
+    # 3. Локальная разработка (Docker)
+    url = os.getenv("LOCAL_DATABASE_URL", "postgresql://postgres:password@postgres:5432/crm_db")
+    logger.info("Using local database URL")
+    return url
 
 
-def clean_database_url(url):
-    """Очищает строку подключения от нестандартных параметров"""
+# ============ ОЧИСТКА И НАСТРОЙКА URL ============
+
+def clean_database_url(url: str) -> str:
+    """Очищает URL и добавляет правильные параметры для окружения"""
     if not url:
         return url
 
-    # Удаляем параметр pgbouncer если он есть
-    if 'pgbouncer=true' in url:
-        url = url.replace('&pgbouncer=true', '')
-        url = url.replace('?pgbouncer=true&', '?')
-        url = url.replace('?pgbouncer=true', '')
-        logger.info("Removed pgbouncer parameter from connection string")
-
     # Конвертируем postgres:// в postgresql://
-    if url.startswith('postgres://'):
-        url = url.replace('postgres://', 'postgresql://', 1)
-        logger.info("Converted postgres:// to postgresql://")
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql://", 1)
 
-    # Убеждаемся, что sslmode=require присутствует
-    if 'sslmode=require' not in url and 'localhost' not in url:
-        if '?' in url:
-            url += '&sslmode=require'
-        else:
-            url += '?sslmode=require'
-        logger.info("Added sslmode=require")
+    # Определяем, является ли это локальным окружением
+    is_local = any(host in url for host in ["localhost", "127.0.0.1", "postgres"])
+
+    if is_local:
+        # Для локальной разработки - SSL не нужен
+        # Удаляем sslmode если он есть
+        url = url.replace("?sslmode=require", "")
+        url = url.replace("&sslmode=require", "")
+        logger.info("Local environment detected: SSL disabled")
+    else:
+        # Для продакшена - добавляем sslmode=require
+        if "sslmode=require" not in url:
+            if "?" in url:
+                url += "&sslmode=require"
+            else:
+                url += "?sslmode=require"
+        logger.info("Production environment detected: SSL enabled")
+
+    # Удаляем параметр pgbouncer если он есть (он уже не нужен)
+    if "pgbouncer=true" in url:
+        url = url.replace("&pgbouncer=true", "")
+        url = url.replace("?pgbouncer=true&", "?")
+        url = url.replace("?pgbouncer=true", "")
+        logger.info("Removed pgbouncer parameter")
 
     return url
 
 
-def get_database_url():
-    """Получает и очищает DATABASE_URL"""
-    # Сначала проверяем DATABASE_URL
-    url = os.getenv("DATABASE_URL")
-    if url:
-        logger.info("Using DATABASE_URL")
-        return clean_database_url(url)
-
-    # Затем apex_POSTGRES_PRISMA_URL
-    url = os.getenv("apex_POSTGRES_PRISMA_URL")
-    if url:
-        logger.info("Using apex_POSTGRES_PRISMA_URL")
-        return clean_database_url(url)
-
-    # Затем apex_POSTGRES_URL
-    url = os.getenv("apex_POSTGRES_URL")
-    if url:
-        logger.info("Using apex_POSTGRES_URL")
-        return clean_database_url(url)
-
-    # Затем apex_POSTGRES_URL_NON_POOLING
-    url = os.getenv("apex_POSTGRES_URL_NON_POOLING")
-    if url:
-        logger.info("Using apex_POSTGRES_URL_NON_POOLING")
-        return clean_database_url(url)
-
-    logger.error("No database URL found!")
-    return None
-
+# ============ ИНИЦИАЛИЗАЦИЯ ============
 
 DATABASE_URL = get_database_url()
+DATABASE_URL = clean_database_url(DATABASE_URL)
 
-if not DATABASE_URL:
-    DATABASE_URL = "postgresql://placeholder:placeholder@localhost:5432/placeholder"
-    logger.error("Using placeholder DATABASE_URL - database will not work!")
-
-# Логируем информацию о подключении (без пароля)
-if '@' in DATABASE_URL and 'placeholder' not in DATABASE_URL:
+# Логируем информацию (без пароля)
+if '@' in DATABASE_URL:
     parts = DATABASE_URL.split('@')
     logger.info(f"Connecting to: {parts[0].split(':')[0]}:***@{parts[1][:50]}...")
 else:
-    logger.info(f"Using database URL (cleaned)")
+    logger.info(f"Connecting to: {DATABASE_URL[:50]}...")
 
-# Создаем engine
-try:
-    engine = create_engine(
-        DATABASE_URL,
-        pool_pre_ping=True,
-        pool_recycle=300,
-        pool_size=1,
-        max_overflow=0,
-        echo=False,
-        connect_args={
-            "connect_timeout": 30,
-            "keepalives": 1,
-            "keepalives_idle": 30,
-            "keepalives_interval": 10,
-            "keepalives_count": 5,
-        } if 'localhost' not in DATABASE_URL else {}
-    )
-    logger.info("Database engine created successfully")
-except Exception as e:
-    logger.error(f"Failed to create database engine: {e}")
-    engine = None
+# Создаем engine с правильными настройками
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+    pool_recycle=300,
+    pool_size=1,
+    max_overflow=0,
+    echo=False,
+    connect_args={
+        "connect_timeout": 30,
+        "keepalives": 1,
+        "keepalives_idle": 30,
+        "keepalives_interval": 10,
+        "keepalives_count": 5,
+    } if "localhost" not in DATABASE_URL and "postgres" not in DATABASE_URL else {}
+)
 
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine) if engine else None
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
 
 
+# ============ ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ============
+
 def get_db():
-    if not SessionLocal:
-        raise Exception("Database not configured properly")
     db = SessionLocal()
     try:
         yield db

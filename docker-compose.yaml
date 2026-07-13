@@ -61,7 +61,7 @@ services:
 
 networks:
   crm_network:
-    driver: bridgeF
+    driver: bridge
 
 volumes:
   postgres_data:
