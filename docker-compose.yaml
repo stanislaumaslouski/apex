@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # PostgreSQL база данных
   postgres:
     image: postgres:16-alpine
     container_name: crm_postgres
@@ -21,29 +20,45 @@ services:
     networks:
       - crm_network
 
-  # FastAPI приложение
-  app:
+  backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
-    container_name: crm_app
+    container_name: crm_backend
     ports:
       - "8000:8000"
     environment:
-      # Передаем переменные окружения напрямую
       DATABASE_URL: postgresql://postgres:password@postgres:5432/crm_db
+      SECRET_KEY: your-super-secret-key-for-development
+      ACCESS_TOKEN_EXPIRE_MINUTES: 30
       PYTHONUNBUFFERED: 1
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
-      - ./app:/app/app  # Для разработки (горячая перезагрузка)
-    # Для продакшена используйте команду без --reload
+      - ./backend/app:/app/app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     networks:
       - crm_network
 
-  # PgAdmin для управления базой данных (опционально)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: crm_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      REACT_APP_API_URL: http://localhost:8000
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    command: npm start
+    depends_on:
+      - backend
+    networks:
+      - crm_network
+
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: crm_pgadmin

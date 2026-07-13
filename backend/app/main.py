@@ -8,7 +8,7 @@ import logging
 import sys
 import os
 
-from app import crud, schemas, models, database, auth
+from app import auth, models, database, crud, schemas
 
 # ============ НАСТРОЙКА ЛОГИРОВАНИЯ ============
 logging.basicConfig(

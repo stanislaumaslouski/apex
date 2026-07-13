@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Session
 from app import models, schemas
 from app.auth import get_password_hash
-from typing import Optional
 
 
 # ============ CRUD ДЛЯ КЛИЕНТОВ ============
