@@ -9,7 +9,7 @@ import sys
 import os
 
 # Импорты для Vercel (с префиксом backend.app)
-from backend.app import auth, models, database, crud, schemas
+from app import auth, models, database, crud, schemas
 
 # Настройка логирования
 logging.basicConfig(
