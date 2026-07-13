@@ -8,9 +8,10 @@ import logging
 import sys
 import os
 
+# Импорты для Vercel (с префиксом backend.app)
 from backend.app import auth, models, database, crud, schemas
 
-# ============ НАСТРОЙКА ЛОГИРОВАНИЯ ============
+# Настройка логирования
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -18,54 +19,32 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ============ СОЗДАНИЕ ПРИЛОЖЕНИЯ ============
+# Создание приложения
 app = FastAPI(
     title="APEX CRM API",
     version="1.0.0",
-    description=""
+    description="CRM система для управления клиентами"
 )
 
-# ============ НАСТРОЙКА CORS ============
+# CORS настройки
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # В продакшене замените на конкретные домены
+    allow_origins=[
+        "https://apex-steel-ten.vercel.app",
+        "https://apex-frontend.vercel.app",
+        "http://localhost:3000",
+        "http://localhost:8000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 
-# ============ СОЗДАНИЕ ТАБЛИЦ ============
-@app.on_event("startup")
-async def startup():
-    try:
-        logger.info("Starting up...")
+# ============ МАРШРУТЫ БЕЗ /api (для обратной совместимости) ============
 
-        # Проверяем переменные окружения
-        db_url = os.getenv("DATABASE_URL") or os.getenv("apex_POSTGRES_PRISMA_URL")
-        if db_url:
-            logger.info("DATABASE_URL found")
-        else:
-            logger.warning("DATABASE_URL not found in environment variables!")
-
-        # Создаем таблицы
-        logger.info("Creating database tables...")
-        models.Base.metadata.create_all(bind=database.engine)
-        logger.info("Database tables created/verified successfully")
-
-        # Проверяем подключение
-        if database.check_db_connection():
-            logger.info("Database connection successful")
-        else:
-            logger.warning("Database connection check failed during startup")
-
-    except Exception as e:
-        logger.error(f"Startup error: {e}")
-
-
-# ============ КОРНЕВЫЕ ЭНДПОИНТЫ ============
 @app.get("/")
-def read_root():
+def root():
     return {
         "message": "APEX CRM API is running",
         "version": "1.0.0",
@@ -74,57 +53,30 @@ def read_root():
 
 
 @app.get("/health")
-def health_check():
-    try:
-        if database.check_db_connection():
-            return {
-                "status": "healthy",
-                "database": "connected",
-                "message": "All systems operational"
-            }
-        else:
-            return {
-                "status": "unhealthy",
-                "database": "disconnected",
-                "message": "Cannot connect to database"
-            }
-    except Exception as e:
-        logger.error(f"Health check failed: {e}")
-        return {
-            "status": "unhealthy",
-            "database": "disconnected",
-            "error": str(e)
-        }
+def health():
+    return {"status": "healthy"}
 
 
-@app.get("/debug/env")
-def debug_env():
-    """Диагностический эндпоинт для проверки переменных окружения"""
-    db_vars = {}
-    for key in os.environ.keys():
-        if 'POSTGRES' in key.upper() or 'DATABASE' in key.upper():
-            value = os.environ[key]
-            if 'PASSWORD' in key or 'KEY' in key or 'SECRET' in key:
-                value = value[:10] + '...' if len(value) > 10 else '***'
-            elif 'URL' in key and '@' in value:
-                parts = value.split('@')
-                if len(parts) > 1:
-                    value = f"{parts[0].split(':')[0]}:***@{parts[1][:30]}..."
-            db_vars[key] = value
+# ============ МАРШРУТЫ С /api (для фронтенда на Vercel) ============
 
+@app.get("/api")
+def api_root():
     return {
-        "database_connected": database.check_db_connection(),
-        "database_url_found": bool(os.getenv("DATABASE_URL") or os.getenv("apex_POSTGRES_PRISMA_URL")),
-        "postgres_vars": db_vars,
-        "all_db_keys": [k for k in os.environ.keys() if 'POSTGRES' in k.upper() or 'DATABASE' in k.upper()]
+        "message": "APEX CRM API is running",
+        "version": "1.0.0",
+        "status": "online"
     }
+
+
+@app.get("/api/health")
+def api_health():
+    return {"status": "healthy"}
 
 
 # ============ АВТОРИЗАЦИЯ ============
 
-# Регистрация нового пользователя
-@app.post("/auth/register", response_model=schemas.UserResponse, status_code=status.HTTP_201_CREATED)
-def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
+@app.post("/api/auth/register", response_model=schemas.UserResponse, status_code=status.HTTP_201_CREATED)
+def api_register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
     """
     Регистрация нового пользователя
     """
@@ -154,9 +106,8 @@ def register(user: schemas.UserCreate, db: Session = Depends(database.get_db)):
     return db_user
 
 
-# Вход (получение JWT токена)
-@app.post("/auth/login", response_model=schemas.Token)
-def login(
+@app.post("/api/auth/login", response_model=schemas.Token)
+def api_login(
         form_data: OAuth2PasswordRequestForm = Depends(),
         db: Session = Depends(database.get_db)
 ):
@@ -184,9 +135,8 @@ def login(
     }
 
 
-# Получение информации о текущем пользователе
-@app.get("/auth/me", response_model=schemas.UserResponse)
-async def get_current_user_info(
+@app.get("/api/auth/me", response_model=schemas.UserResponse)
+async def api_get_current_user_info(
         current_user: models.User = Depends(auth.get_current_active_user)
 ):
     """
@@ -197,9 +147,8 @@ async def get_current_user_info(
 
 # ============ CRUD ДЛЯ КЛИЕНТОВ (ЗАЩИЩЕННЫЕ) ============
 
-# CREATE - Создать клиента
-@app.post("/clients/", response_model=schemas.ClientResponse, status_code=status.HTTP_201_CREATED)
-def create_client(
+@app.post("/api/clients/", response_model=schemas.ClientResponse, status_code=status.HTTP_201_CREATED)
+def api_create_client(
         client: schemas.ClientCreate,
         db: Session = Depends(database.get_db),
         current_user: models.User = Depends(auth.get_current_active_user)
@@ -226,9 +175,8 @@ def create_client(
         )
 
 
-# READ - Получить всех клиентов
-@app.get("/clients/", response_model=List[schemas.ClientResponse])
-def read_clients(
+@app.get("/api/clients/", response_model=List[schemas.ClientResponse])
+def api_read_clients(
         skip: int = 0,
         limit: int = 100,
         db: Session = Depends(database.get_db),
@@ -248,9 +196,8 @@ def read_clients(
         )
 
 
-# READ - Получить одного клиента по ID
-@app.get("/clients/{client_id}", response_model=schemas.ClientResponse)
-def read_client(
+@app.get("/api/clients/{client_id}", response_model=schemas.ClientResponse)
+def api_read_client(
         client_id: int,
         db: Session = Depends(database.get_db),
         current_user: models.User = Depends(auth.get_current_active_user)
@@ -267,9 +214,8 @@ def read_client(
     return client
 
 
-# UPDATE - Обновить клиента
-@app.put("/clients/{client_id}", response_model=schemas.ClientResponse)
-def update_client(
+@app.put("/api/clients/{client_id}", response_model=schemas.ClientResponse)
+def api_update_client(
         client_id: int,
         client_update: schemas.ClientUpdate,
         db: Session = Depends(database.get_db),
@@ -287,9 +233,8 @@ def update_client(
     return client
 
 
-# DELETE - Удалить клиента
-@app.delete("/clients/{client_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_client(
+@app.delete("/api/clients/{client_id}", status_code=status.HTTP_204_NO_CONTENT)
+def api_delete_client(
         client_id: int,
         db: Session = Depends(database.get_db),
         current_user: models.User = Depends(auth.get_current_active_user)
@@ -304,3 +249,32 @@ def delete_client(
             detail="Client not found"
         )
     return None
+
+
+# ============ СТАРТ ПРИЛОЖЕНИЯ ============
+
+@app.on_event("startup")
+async def startup():
+    try:
+        logger.info("Starting up...")
+
+        # Проверяем переменные окружения
+        db_url = os.getenv("DATABASE_URL") or os.getenv("apex_POSTGRES_PRISMA_URL")
+        if db_url:
+            logger.info("DATABASE_URL found")
+        else:
+            logger.warning("DATABASE_URL not found in environment variables!")
+
+        # Создаем таблицы
+        logger.info("Creating database tables...")
+        models.Base.metadata.create_all(bind=database.engine)
+        logger.info("Database tables created/verified successfully")
+
+        # Проверяем подключение
+        if database.check_db_connection():
+            logger.info("Database connection successful")
+        else:
+            logger.warning("Database connection check failed during startup")
+
+    except Exception as e:
+        logger.error(f"Startup error: {e}")
