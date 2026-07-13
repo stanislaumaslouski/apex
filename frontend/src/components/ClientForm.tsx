@@ -24,7 +24,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({
   const [error, setError] = useState<string | null>(null);
   const isEditing = !!client;
 
-  // Заполняем форму при редактировании
   useEffect(() => {
     if (client) {
       setFormData({
@@ -67,13 +66,13 @@ export const ClientForm: React.FC<ClientFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-      <h3 className="text-lg font-medium text-gray-900 mb-4">
+    <form onSubmit={handleSubmit} className="bg-gray-800/30 border border-yellow-600/20 rounded-xl p-6">
+      <h3 className="text-xl font-bold text-white mb-4">
         {isEditing ? '✏️ Редактирование клиента' : '➕ Новый клиент'}
       </h3>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
+        <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg mb-4">
           {error}
         </div>
       )}
@@ -86,7 +85,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
           required
           value={formData.first_name}
           onChange={handleChange}
-          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
         />
         <input
           type="text"
@@ -95,7 +94,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
           required
           value={formData.last_name}
           onChange={handleChange}
-          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
         />
         <input
           type="email"
@@ -104,7 +103,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
           required
           value={formData.email}
           onChange={handleChange}
-          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
         />
         <input
           type="text"
@@ -112,7 +111,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
           placeholder="Телефон"
           value={formData.phone}
           onChange={handleChange}
-          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
         />
         <input
           type="text"
@@ -120,35 +119,35 @@ export const ClientForm: React.FC<ClientFormProps> = ({
           placeholder="Компания"
           value={formData.company}
           onChange={handleChange}
-          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
         />
-        <div className="flex items-center">
+        <div className="flex items-center space-x-3">
           <input
             type="checkbox"
             name="is_active"
             id="is_active"
             checked={formData.is_active}
             onChange={handleChange}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            className="w-5 h-5 text-yellow-400 focus:ring-yellow-400 border-gray-600 rounded bg-gray-700/50"
           />
-          <label htmlFor="is_active" className="ml-2 text-sm text-gray-700">
+          <label htmlFor="is_active" className="text-gray-300">
             Активен
           </label>
         </div>
       </div>
 
-      <div className="mt-4 flex gap-3">
+      <div className="mt-6 flex gap-3">
         <button
           type="submit"
           disabled={loading}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+          className="px-6 py-2.5 bg-yellow-400 hover:bg-yellow-500 text-black font-medium rounded-lg transition-all transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 focus:ring-offset-gray-800 disabled:opacity-50"
         >
           {loading ? 'Сохранение...' : isEditing ? 'Обновить' : 'Сохранить'}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+          className="px-6 py-2.5 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-lg transition-all"
         >
           Отмена
         </button>

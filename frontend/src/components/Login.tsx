@@ -27,68 +27,72 @@ export const Login: React.FC = () => {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow-lg">
-        <div>
-          <h2 className="text-center text-3xl font-extrabold text-gray-900">
-            Вход в Apex CRM
+      <div className="max-w-md w-full space-y-8 p-8 bg-gray-800/50 backdrop-blur-sm border border-yellow-600/20 rounded-2xl shadow-2xl shadow-yellow-600/10">
+        <div className="text-center">
+          {/* ✅ ЛОГОТИП С СИЯНИЕМ */}
+          <div className="flex justify-center mb-4">
+            <img
+              src="/Image.png"
+              alt="APEX CRM Logo"
+              className="h-16 w-auto transition-all duration-500 hover:scale-110 hover:drop-shadow-[0_0_30px_rgba(251,191,36,0.8)] animate-pulse-slow"
+            />
+          </div>
+          <h2 className="text-3xl font-bold text-white">
+            Добро пожаловать
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Войдите в систему для управления клиентами
+          <p className="mt-2 text-gray-400">
+            Войдите в <span className="text-yellow-400">APEX CRM</span>
           </p>
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg text-sm">
               {error}
             </div>
           )}
 
           <div className="space-y-4">
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Имя пользователя
               </label>
               <input
-                id="username"
                 type="text"
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
                 placeholder="Введите имя пользователя"
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-gray-300 mb-1">
                 Пароль
               </label>
               <input
-                id="password"
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
                 placeholder="Введите пароль"
               />
             </div>
           </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Вход...' : 'Войти'}
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 px-4 bg-yellow-400 hover:bg-yellow-500 text-black font-medium rounded-lg transition-all transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Вход...' : 'Войти'}
+          </button>
 
-          <div className="text-sm text-center">
-            <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
-              Нет аккаунта? Зарегистрироваться
+          <div className="text-center">
+            <Link to="/register" className="text-sm text-gray-400 hover:text-yellow-400 transition-colors">
+              Нет аккаунта? <span className="text-yellow-400">Зарегистрироваться</span>
             </Link>
           </div>
         </form>
