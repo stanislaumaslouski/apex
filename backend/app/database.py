@@ -8,8 +8,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-# ============ ПОЛУЧЕНИЕ СТРОКИ ПОДКЛЮЧЕНИЯ ============
-
 def get_database_url():
     """Определяет правильную строку подключения в зависимости от окружения"""
 

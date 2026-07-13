@@ -3,8 +3,6 @@ from app import models, schemas
 from app.auth import get_password_hash
 
 
-# ============ CRUD ДЛЯ КЛИЕНТОВ ============
-
 def get_client(db: Session, client_id: int):
     return db.query(models.Client).filter(models.Client.id == client_id).first()
 
@@ -49,8 +47,6 @@ def delete_client(db: Session, client_id: int):
     return db_client
 
 
-# ============ CRUD ДЛЯ ПОЛЬЗОВАТЕЛЕЙ ============
-
 def get_user_by_username(db: Session, username: str):
     return db.query(models.User).filter(models.User.username == username).first()
 
@@ -64,7 +60,6 @@ def get_user_by_id(db: Session, user_id: int):
 
 
 def create_user(db: Session, user: schemas.UserCreate):
-    # Проверяем существование
     existing_user = get_user_by_username(db, user.username)
     if existing_user:
         return None
@@ -73,7 +68,6 @@ def create_user(db: Session, user: schemas.UserCreate):
     if existing_email:
         return None
 
-    # Хэшируем пароль
     hashed_password = get_password_hash(user.password)
     db_user = models.User(
         username=user.username,

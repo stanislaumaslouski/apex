@@ -26,12 +26,10 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
-# ... остальной код без изменений ...
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 
-# Функции для работы с паролями
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
@@ -59,8 +57,6 @@ def decode_token(token: str) -> Optional[dict]:
     except JWTError:
         return None
 
-
-# Функции для работы с пользователями
 def get_user_by_username(db: Session, username: str):
     return db.query(models.User).filter(models.User.username == username).first()
 
@@ -82,7 +78,6 @@ def authenticate_user(db: Session, username: str, password: str):
     return user
 
 
-# Зависимость для получения текущего пользователя
 async def get_current_user(
         token: str = Depends(oauth2_scheme),
         db: Session = Depends(get_db)
@@ -108,7 +103,6 @@ async def get_current_user(
     return user
 
 
-# Зависимость для получения текущего активного пользователя
 async def get_current_active_user(
         current_user: models.User = Depends(get_current_user)
 ) -> models.User:
