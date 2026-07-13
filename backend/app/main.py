@@ -30,8 +30,8 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://crmapex.vercel.app",
         "https://apex-steel-ten.vercel.app",
-        "https://apex-frontend.vercel.app",
         "http://localhost:3000",
         "http://localhost:8000"
     ],
