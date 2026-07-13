@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-// URL бэкенда - для локальной разработки и продакшена
+// В продакшене используем /api, локально - localhost:8000
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
 
 const api = axios.create({
