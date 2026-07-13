@@ -36,8 +36,8 @@ app.add_middleware(
         "http://localhost:8000"
     ],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Разрешить все методы (GET, POST, OPTIONS, etc.)
+    allow_headers=["*"],  # Разрешить все заголовки
 )
 
 
