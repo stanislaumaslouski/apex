@@ -1,20 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { clientsApi, Client } from '../api/api';
 import { useAuth } from '../contexts/AuthContext';
+import { ClientForm } from './ClientForm';
 
 export const ClientsList: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [newClient, setNewClient] = useState({
-    first_name: '',
-    last_name: '',
-    email: '',
-    phone: '',
-    company: '',
-    is_active: true,
-  });
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
   const { user, logout } = useAuth();
 
   useEffect(() => {
@@ -34,23 +28,20 @@ export const ClientsList: React.FC = () => {
     }
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await clientsApi.create(newClient);
-      setShowForm(false);
-      setNewClient({
-        first_name: '',
-        last_name: '',
-        email: '',
-        phone: '',
-        company: '',
-        is_active: true,
-      });
-      await loadClients();
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Ошибка создания клиента');
-    }
+  const handleEdit = (client: Client) => {
+    setEditingClient(client);
+    setShowForm(true);
+  };
+
+  const handleFormSuccess = () => {
+    setShowForm(false);
+    setEditingClient(null);
+    loadClients();
+  };
+
+  const handleFormCancel = () => {
+    setShowForm(false);
+    setEditingClient(null);
   };
 
   const handleDelete = async (id: number) => {
@@ -81,10 +72,13 @@ export const ClientsList: React.FC = () => {
         </div>
         <div className="flex gap-3">
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => {
+              setEditingClient(null);
+              setShowForm(!showForm);
+            }}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
-            {showForm ? '✕ Отмена' : '+ Добавить клиента'}
+            {showForm && !editingClient ? '✕ Отмена' : '+ Добавить клиента'}
           </button>
           <button
             onClick={logout}
@@ -102,78 +96,15 @@ export const ClientsList: React.FC = () => {
         </div>
       )}
 
-      {/* Форма создания */}
+      {/* Форма создания/редактирования */}
       {showForm && (
-        <form onSubmit={handleCreate} className="bg-gray-50 p-4 rounded-lg mb-6 border border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Новый клиент</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              type="text"
-              placeholder="Имя *"
-              required
-              value={newClient.first_name}
-              onChange={(e) => setNewClient({...newClient, first_name: e.target.value})}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              type="text"
-              placeholder="Фамилия *"
-              required
-              value={newClient.last_name}
-              onChange={(e) => setNewClient({...newClient, last_name: e.target.value})}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              type="email"
-              placeholder="Email *"
-              required
-              value={newClient.email}
-              onChange={(e) => setNewClient({...newClient, email: e.target.value})}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              type="text"
-              placeholder="Телефон"
-              value={newClient.phone}
-              onChange={(e) => setNewClient({...newClient, phone: e.target.value})}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <input
-              type="text"
-              placeholder="Компания"
-              value={newClient.company}
-              onChange={(e) => setNewClient({...newClient, company: e.target.value})}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="is_active"
-                checked={newClient.is_active}
-                onChange={(e) => setNewClient({...newClient, is_active: e.target.checked})}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label htmlFor="is_active" className="ml-2 text-sm text-gray-700">
-                Активен
-              </label>
-            </div>
-          </div>
-          <div className="mt-4 flex gap-3">
-            <button
-              type="submit"
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-            >
-              Сохранить
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowForm(false)}
-              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
-            >
-              Отмена
-            </button>
-          </div>
-        </form>
+        <div className="mb-6">
+          <ClientForm
+            client={editingClient}
+            onSuccess={handleFormSuccess}
+            onCancel={handleFormCancel}
+          />
+        </div>
       )}
 
       {/* Таблица клиентов */}
@@ -236,12 +167,18 @@ export const ClientsList: React.FC = () => {
                       {client.is_active ? 'Активен' : 'Неактивен'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
+                    <button
+                      onClick={() => handleEdit(client)}
+                      className="text-blue-600 hover:text-blue-900 font-medium"
+                    >
+                      ✏️ Редактировать
+                    </button>
                     <button
                       onClick={() => handleDelete(client.id)}
                       className="text-red-600 hover:text-red-900 font-medium"
                     >
-                      Удалить
+                      🗑️ Удалить
                     </button>
                   </td>
                 </tr>
