@@ -14,7 +14,6 @@ function Navigation() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center space-x-8">
-            {/* ✅ ЛОГОТИП С АНИМАЦИЕЙ */}
             <Link to="/" className="flex items-center space-x-2 group">
               <img
                 src="/Image.png"
@@ -25,16 +24,6 @@ function Navigation() {
                 APEX<span className="text-yellow-400 group-hover:text-white transition-colors duration-300">CRM</span>
               </span>
             </Link>
-            {isAuthenticated && (
-              <>
-                <Link to="/" className="text-gray-300 hover:text-yellow-400 transition-colors">
-                  Клиенты
-                </Link>
-                <Link to="/clients/new" className="text-gray-300 hover:text-yellow-400 transition-colors">
-                  + Добавить
-                </Link>
-              </>
-            )}
           </div>
           <div className="flex items-center space-x-4">
             {isAuthenticated ? (
