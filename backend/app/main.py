@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 import logging
 import sys
@@ -22,7 +22,7 @@ app = FastAPI(
     description="CRM система для управления клиентами"
 )
 
-# CORS настройки
+# ============ CORS НАСТРОЙКИ ============
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -32,10 +32,58 @@ app.add_middleware(
         "http://localhost:8000"
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
+    max_age=86400,  # Кэширование CORS на 24 часа
 )
+
+
+# ============ MIDDLEWARE ДЛЯ ОБРАБОТКИ OPTIONS И CORS ============
+@app.middleware("http")
+async def cors_middleware(request: Request, call_next):
+    """
+    Обработка CORS и OPTIONS запросов
+    """
+    # Явная обработка OPTIONS запросов
+    if request.method == "OPTIONS":
+        response = Response()
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        response.headers[
+            "Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept, Origin, X-Requested-With"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Max-Age"] = "86400"
+        return response
+
+    # Обработка обычных запросов
+    response = await call_next(request)
+
+    # Добавляем CORS заголовки к ответу
+    response.headers["Access-Control-Allow-Origin"] = request.headers.get("origin", "*")
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Expose-Headers"] = "*"
+
+    return response
+
+
+# ============ ЯВНЫЙ ОБРАБОТЧИК OPTIONS ДЛЯ ВСЕХ МАРШРУТОВ ============
+@app.options("/{full_path:path}")
+async def options_router(request: Request):
+    """
+    Обработка OPTIONS запросов для всех маршрутов
+    """
+    return Response(
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization, Accept, Origin, X-Requested-With",
+            "Access-Control-Allow-Credentials": "true",
+            "Access-Control-Max-Age": "86400",
+        }
+    )
+
 
 # ============ ПОДКЛЮЧЕНИЕ РОУТЕРОВ ============
 
