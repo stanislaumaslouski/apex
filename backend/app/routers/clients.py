@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from app import auth, models, schemas, crud, database
 
@@ -35,6 +35,7 @@ def create_client(
 def read_clients(
     skip: int = 0,
     limit: int = 100,
+    country: Optional[str] = Query(None, description="Filter by country code (BY, RU, US, etc.)"),
     db: Session = Depends(database.get_db),
     current_user: models.User = Depends(auth.get_current_active_user)
 ):
@@ -42,7 +43,7 @@ def read_clients(
     Получение списка всех клиентов. Требуется авторизация.
     """
     try:
-        return crud.get_clients(db, skip=skip, limit=limit)
+        return crud.get_clients(db, skip=skip, limit=limit, country=country)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

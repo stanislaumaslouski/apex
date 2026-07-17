@@ -1,3 +1,5 @@
+from typing import Optional
+
 from sqlalchemy.orm import Session
 from app import models, schemas
 from app.auth import get_password_hash
@@ -11,8 +13,11 @@ def get_client_by_email(db: Session, email: str):
     return db.query(models.Client).filter(models.Client.email == email).first()
 
 
-def get_clients(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(models.Client).offset(skip).limit(limit).all()
+def get_clients(db: Session, skip: int = 0, limit: int = 100, country: Optional[str] = None):
+    query = db.query(models.Client)
+    if country and country != 'all':
+        query = query.filter(models.Client.country == country)
+    return query.offset(skip).limit(limit).all()
 
 
 def create_client(db: Session, client: schemas.ClientCreate):

@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 import logging
 import sys
 import os
@@ -35,7 +36,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["*"],
-    max_age=86400,  # Кэширование CORS на 24 часа
+    max_age=86400,
 )
 
 
@@ -45,7 +46,6 @@ async def cors_middleware(request: Request, call_next):
     """
     Обработка CORS и OPTIONS запросов
     """
-    # Явная обработка OPTIONS запросов
     if request.method == "OPTIONS":
         response = Response()
         response.headers["Access-Control-Allow-Origin"] = "*"
@@ -56,23 +56,16 @@ async def cors_middleware(request: Request, call_next):
         response.headers["Access-Control-Max-Age"] = "86400"
         return response
 
-    # Обработка обычных запросов
     response = await call_next(request)
-
-    # Добавляем CORS заголовки к ответу
     response.headers["Access-Control-Allow-Origin"] = request.headers.get("origin", "*")
     response.headers["Access-Control-Allow-Credentials"] = "true"
     response.headers["Access-Control-Expose-Headers"] = "*"
-
     return response
 
 
-# ============ ЯВНЫЙ ОБРАБОТЧИК OPTIONS ДЛЯ ВСЕХ МАРШРУТОВ ============
+# ============ ЯВНЫЙ ОБРАБОТЧИК OPTIONS ============
 @app.options("/{full_path:path}")
 async def options_router(request: Request):
-    """
-    Обработка OPTIONS запросов для всех маршрутов
-    """
     return Response(
         status_code=200,
         headers={
@@ -86,20 +79,65 @@ async def options_router(request: Request):
 
 
 # ============ ПОДКЛЮЧЕНИЕ РОУТЕРОВ ============
-
-# Роутеры без префикса
 app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(clients.router)
 
-# Роутеры с префиксом /api (для фронтенда)
 app.include_router(health.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")
 app.include_router(clients.router, prefix="/api")
 
 
-# ============ СТАРТ ПРИЛОЖЕНИЯ ============
+# ============ МИГРАЦИИ ============
+def run_migrations_safe():
+    """
+    Безопасное выполнение миграций для Vercel.
+    Создаёт таблицы и добавляет недостающие колонки.
+    """
+    try:
+        logger.info("Checking database schema...")
 
+        # Создаем таблицы если их нет
+        models.Base.metadata.create_all(bind=database.engine)
+        logger.info("✅ Tables verified")
+
+        # Проверяем и добавляем колонку country
+        with database.engine.connect() as conn:
+            # Проверяем существование колонки country
+            result = conn.execute(text("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name='clients' AND column_name='country'
+            """))
+
+            if result.fetchone() is None:
+                logger.info("Adding column 'country' to clients table...")
+                conn.execute(text("ALTER TABLE clients ADD COLUMN country VARCHAR(10)"))
+                conn.commit()
+                logger.info("✅ Column 'country' added")
+            else:
+                logger.info("ℹ️ Column 'country' already exists")
+
+        # Здесь можно добавить проверку других колонок
+        # Например, для добавления нового поля:
+        # with database.engine.connect() as conn:
+        #     result = conn.execute(text("""
+        #         SELECT column_name
+        #         FROM information_schema.columns
+        #         WHERE table_name='clients' AND column_name='new_field'
+        #     """))
+        #     if result.fetchone() is None:
+        #         logger.info("Adding column 'new_field'...")
+        #         conn.execute(text("ALTER TABLE clients ADD COLUMN new_field VARCHAR(100)"))
+        #         conn.commit()
+        #         logger.info("✅ Column 'new_field' added")
+
+    except Exception as e:
+        logger.warning(f"⚠️ Migration warning: {e}")
+        # Не останавливаем приложение, если миграция не удалась
+
+
+# ============ СТАРТ ПРИЛОЖЕНИЯ ============
 @app.on_event("startup")
 async def startup():
     try:
@@ -107,18 +145,17 @@ async def startup():
 
         db_url = os.getenv("DATABASE_URL") or os.getenv("apex_POSTGRES_PRISMA_URL")
         if db_url:
-            logger.info("DATABASE_URL found")
+            logger.info("✅ DATABASE_URL found")
         else:
-            logger.warning("DATABASE_URL not found in environment variables!")
+            logger.warning("⚠️ DATABASE_URL not found in environment variables!")
 
-        logger.info("Creating database tables...")
-        models.Base.metadata.create_all(bind=database.engine)
-        logger.info("Database tables created/verified successfully")
+        # ✅ ВЫПОЛНЯЕМ МИГРАЦИИ
+        run_migrations_safe()
 
         if database.check_db_connection():
-            logger.info("Database connection successful")
+            logger.info("✅ Database connection successful")
         else:
-            logger.warning("Database connection check failed during startup")
+            logger.warning("⚠️ Database connection check failed during startup")
 
     except Exception as e:
-        logger.error(f"Startup error: {e}")
+        logger.error(f"❌ Startup error: {e}")

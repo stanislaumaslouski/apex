@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Client, clientsApi } from '../api/api';
+import { PhoneInput } from './PhoneInput';
+import { countries } from '../data/countries';
 
 interface ClientFormProps {
   client?: Client | null;
@@ -18,10 +20,12 @@ export const ClientForm: React.FC<ClientFormProps> = ({
     email: '',
     phone: '',
     company: '',
+    country: '',
     is_active: true,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string>('');
   const isEditing = !!client;
 
   useEffect(() => {
@@ -32,21 +36,46 @@ export const ClientForm: React.FC<ClientFormProps> = ({
         email: client.email,
         phone: client.phone || '',
         company: client.company || '',
+        country: client.country || '',
         is_active: client.is_active,
       });
     }
   }, [client]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
+  // ✅ ИСПРАВЛЕННЫЙ handleChange
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    // Для checkbox проверяем отдельно
+    if (type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked;
+      setFormData(prev => ({
+        ...prev,
+        [name]: checked,
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
+  };
+
+  const handlePhoneChange = (phone: string) => {
+    setFormData(prev => ({ ...prev, phone }));
+    setPhoneError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (formData.phone) {
+      const digits = formData.phone.replace(/\D/g, '');
+      if (digits.length < 10 || digits.length > 15) {
+        setPhoneError('Введите корректный номер телефона');
+        return;
+      }
+    }
+
     setLoading(true);
     setError(null);
 
@@ -105,13 +134,11 @@ export const ClientForm: React.FC<ClientFormProps> = ({
           onChange={handleChange}
           className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
         />
-        <input
-          type="text"
-          name="phone"
-          placeholder="Телефон"
+        <PhoneInput
           value={formData.phone}
-          onChange={handleChange}
-          className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
+          onChange={handlePhoneChange}
+          error={phoneError}
+          placeholder="Введите номер телефона"
         />
         <input
           type="text"
@@ -121,6 +148,27 @@ export const ClientForm: React.FC<ClientFormProps> = ({
           onChange={handleChange}
           className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
         />
+
+        {/* ВЫБОР СТРАНЫ */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">
+            Страна
+          </label>
+          <select
+            name="country"
+            value={formData.country}
+            onChange={handleChange}
+            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all appearance-none"
+          >
+            <option value="">Выберите страну</option>
+            {countries.map((country) => (
+              <option key={country.code} value={country.code}>
+                {country.flag} {country.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="flex items-center space-x-3">
           <input
             type="checkbox"

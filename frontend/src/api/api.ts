@@ -10,7 +10,7 @@ const api = axios.create({
   },
 });
 
-// Интерцептор для добавления токена к каждому запросу
+// ✅ Интерцептор для добавления токена к каждому запросу
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -19,7 +19,7 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Интерцептор для обработки ошибок
+// ✅ Интерцептор для обработки ошибок
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -40,6 +40,7 @@ export interface Client {
   email: string;
   phone?: string;
   company?: string;
+  country?: string;
   is_active: boolean;
   created_at: string;
   updated_at?: string;
@@ -84,8 +85,12 @@ export const authApi = {
 
 // ============ CLIENTS API ============
 export const clientsApi = {
-  getAll: () => {
-    return api.get<Client[]>('/clients/');
+  getAll: (country?: string) => {
+    const params: Record<string, string> = {};
+    if (country && country !== 'all') {
+      params.country = country;
+    }
+    return api.get<Client[]>('/clients/', { params });
   },
 
   getById: (id: number) => {

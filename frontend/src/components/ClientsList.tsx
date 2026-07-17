@@ -2,9 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { clientsApi, Client } from '../api/api';
 import { useAuth } from '../contexts/AuthContext';
 import { ClientForm } from './ClientForm';
+import { countries } from '../data/countries';
 
 export const ClientsList: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
+  const [filteredClients, setFilteredClients] = useState<Client[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCountry, setSelectedCountry] = useState('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -15,19 +19,24 @@ export const ClientsList: React.FC = () => {
     loadClients();
   }, []);
 
+  useEffect(() => {
+    filterClients();
+  }, [searchTerm, selectedCountry, clients]);
+
   const loadClients = async () => {
-    try {
-      setLoading(true);
-      const response = await clientsApi.getAll();
-      setClients(response.data);
-      setError(null);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Ошибка загрузки клиентов');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    setLoading(true);
+    // ✅ Передаем параметр country
+    const response = await clientsApi.getAll(selectedCountry);
+    setClients(response.data);
+    setError(null);
+  } catch (err: any) {
+    setError(err.response?.data?.detail || 'Ошибка загрузки клиентов');
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleEdit = (client: Client) => {
     setEditingClient(client);
@@ -56,6 +65,82 @@ export const ClientsList: React.FC = () => {
     }
   };
 
+  // Функция фильтрации (поиск + страна)
+  const filterClients = () => {
+    let filtered = [...clients];
+
+    // Фильтр по стране
+    if (selectedCountry !== 'all') {
+      filtered = filtered.filter(client => client.country === selectedCountry);
+    }
+
+    // Поиск
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter(client => {
+        const fullName = `${client.first_name} ${client.last_name}`.toLowerCase();
+        if (fullName.includes(searchLower)) return true;
+        if (client.last_name.toLowerCase().includes(searchLower)) return true;
+        if (client.email.toLowerCase().includes(searchLower)) return true;
+
+        const phoneClean = client.phone?.replace(/[\s()\-+]/g, '') || '';
+        const searchClean = searchLower.replace(/[\s()\-+]/g, '');
+        if (phoneClean.includes(searchClean)) return true;
+
+        return false;
+      });
+    }
+
+    setFilteredClients(filtered);
+  };
+
+  const formatPhoneNumber = (phone: string): string => {
+    if (!phone) return '-';
+
+    const cleaned = phone.replace(/[^\d+]/g, '');
+    if (!cleaned) return '-';
+
+    if (cleaned.startsWith('+')) {
+      const digits = cleaned.slice(1);
+      if (digits.length <= 3) return '+' + digits;
+      if (digits.length <= 5) return '+' + digits.slice(0, 3) + ' ' + digits.slice(3);
+      if (digits.length <= 7) return '+' + digits.slice(0, 3) + ' (' + digits.slice(3, 5) + ')';
+      if (digits.length <= 9) return '+' + digits.slice(0, 3) + ' (' + digits.slice(3, 5) + ') ' + digits.slice(5, 8);
+      if (digits.length <= 11) return '+' + digits.slice(0, 3) + ' (' + digits.slice(3, 5) + ') ' + digits.slice(5, 8) + '-' + digits.slice(8, 10);
+      return '+' + digits.slice(0, 3) + ' (' + digits.slice(3, 5) + ') ' + digits.slice(5, 8) + '-' + digits.slice(8, 10) + '-' + digits.slice(10, 12);
+    }
+
+    if (phone.length <= 3) return phone;
+    if (phone.length <= 6) return phone.slice(0, 3) + ' ' + phone.slice(3);
+    if (phone.length <= 8) return phone.slice(0, 3) + ' ' + phone.slice(3, 6) + ' ' + phone.slice(6);
+    if (phone.length <= 10) return phone.slice(0, 3) + ' ' + phone.slice(3, 6) + ' ' + phone.slice(6, 8) + '-' + phone.slice(8);
+    return phone.slice(0, 3) + ' ' + phone.slice(3, 6) + ' ' + phone.slice(6, 8) + '-' + phone.slice(8, 10) + '-' + phone.slice(10);
+  };
+
+  const highlightMatch = (text: string, search: string): React.ReactNode => {
+    if (!search.trim() || !text) return text;
+
+    const searchLower = search.toLowerCase().trim();
+    const textLower = text.toLowerCase();
+    const index = textLower.indexOf(searchLower);
+
+    if (index === -1) return text;
+
+    return (
+      <>
+        {text.slice(0, index)}
+        <span className="bg-yellow-400/30 text-yellow-200 px-0.5 rounded">
+          {text.slice(index, index + search.length)}
+        </span>
+        {text.slice(index + search.length)}
+      </>
+    );
+  };
+
+  const handleCountryChange = (country: string) => {
+    setSelectedCountry(country);
+  };
+
   if (loading) {
     return <div className="text-center py-8 text-gray-500">Загрузка клиентов...</div>;
   }
@@ -72,7 +157,7 @@ export const ClientsList: React.FC = () => {
             </p>
           )}
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 items-center">
           <button
             onClick={() => {
               setEditingClient(null);
@@ -85,6 +170,65 @@ export const ClientsList: React.FC = () => {
         </div>
       </div>
 
+      {/* ✅ СТРОКА ПОИСКА И ФИЛЬТР ПО СТРАНАМ */}
+      <div className="mb-6 flex flex-wrap gap-4">
+        {/* Поле поиска */}
+        <div className="flex-1 min-w-[200px]">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="🔍 Поиск..."
+              className="w-full pl-10 pr-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* ✅ ФИЛЬТР ПО СТРАНАМ */}
+        <div className="min-w-[200px]">
+          <select
+            value={selectedCountry}
+            onChange={(e) => handleCountryChange(e.target.value)}
+            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all appearance-none"
+          >
+            <option value="all">🌍 Все страны</option>
+            {countries.map((country) => (
+              <option key={country.code} value={country.code}>
+                {country.flag} {country.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Информация о результатах */}
+      <div className="mb-4 flex justify-between items-center text-sm text-gray-400">
+        <span>
+          {searchTerm || selectedCountry !== 'all' ? (
+            <>Найдено: <span className="text-yellow-400 font-semibold">{filteredClients.length}</span> из {clients.length}</>
+          ) : (
+            <>Всего клиентов: <span className="text-yellow-400 font-semibold">{clients.length}</span></>
+          )}
+        </span>
+        {filteredClients.length === 0 && (searchTerm || selectedCountry !== 'all') && (
+          <span className="text-yellow-400">✕ Клиенты не найдены</span>
+        )}
+      </div>
+
       {/* Ошибки */}
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg mb-4">
@@ -92,7 +236,7 @@ export const ClientsList: React.FC = () => {
         </div>
       )}
 
-      {/* Форма создания/редактирования */}
+      {/* Форма */}
       {showForm && (
         <div className="mb-6">
           <ClientForm
@@ -103,10 +247,14 @@ export const ClientsList: React.FC = () => {
         </div>
       )}
 
-      {/* Таблица клиентов */}
-      {clients.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
-          Нет клиентов. Добавьте первого!
+      {/* Таблица */}
+      {filteredClients.length === 0 ? (
+        <div className="text-center py-12 bg-gray-800/30 border border-gray-700/50 rounded-xl">
+          <div className="text-5xl mb-4">🔍</div>
+          <h3 className="text-xl font-medium text-white">Клиенты не найдены</h3>
+          <p className="text-gray-400 mt-2">
+            {searchTerm || selectedCountry !== 'all' ? 'Попробуйте изменить параметры поиска' : 'Добавьте первого клиента!'}
+          </p>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-gray-700/50">
@@ -126,6 +274,9 @@ export const ClientsList: React.FC = () => {
                   Телефон
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-b border-yellow-600/20">
+                  Страна
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-b border-yellow-600/20">
                   Компания
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-b border-yellow-600/20">
@@ -137,48 +288,62 @@ export const ClientsList: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-gray-900/30 divide-y divide-gray-700/50">
-              {clients.map((client) => (
-                <tr key={client.id} className="hover:bg-yellow-400/5 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                    #{client.id}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
-                    {client.first_name} {client.last_name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                    {client.email}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                    {client.phone || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                    {client.company || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      client.is_active 
-                        ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-                        : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                    }`}>
-                      {client.is_active ? '● Активен' : '○ Неактивен'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm space-x-3">
-                    <button
-                      onClick={() => handleEdit(client)}
-                      className="text-yellow-400 hover:text-yellow-300 transition-colors"
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      onClick={() => handleDelete(client.id)}
-                      className="text-red-400 hover:text-red-300 transition-colors"
-                    >
-                      🗑️
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {filteredClients.map((client) => {
+                const country = countries.find(c => c.code === client.country);
+                return (
+                  <tr key={client.id} className="hover:bg-yellow-400/5 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                      #{client.id}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
+                      {searchTerm ? (
+                        <>
+                          {highlightMatch(client.first_name, searchTerm)}
+                          {' '}
+                          {highlightMatch(client.last_name, searchTerm)}
+                        </>
+                      ) : (
+                        `${client.first_name} ${client.last_name}`
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                      {searchTerm ? highlightMatch(client.email, searchTerm) : client.email}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 font-mono tracking-wide">
+                      {formatPhoneNumber(client.phone || '')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                      {country ? `${country.flag} ${country.name}` : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                      {client.company || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        client.is_active
+                          ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                          : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                      }`}>
+                        {client.is_active ? '● Активен' : '○ Неактивен'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm space-x-3">
+                      <button
+                        onClick={() => handleEdit(client)}
+                        className="text-yellow-400 hover:text-yellow-300 transition-colors"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        onClick={() => handleDelete(client.id)}
+                        className="text-red-400 hover:text-red-300 transition-colors"
+                      >
+                        🗑️
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

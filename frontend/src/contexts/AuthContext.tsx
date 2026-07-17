@@ -31,13 +31,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (username: string, password: string) => {
-    const response = await authApi.login(username, password);
-    const { access_token, user } = response.data;
+    try {
+      const response = await authApi.login(username, password);
+      const { access_token, user } = response.data;
 
-    setToken(access_token);
-    setUser(user);
-    localStorage.setItem('token', access_token);
-    localStorage.setItem('user', JSON.stringify(user));
+      setToken(access_token);
+      setUser(user);
+      localStorage.setItem('token', access_token);
+      localStorage.setItem('user', JSON.stringify(user));
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
   };
 
   const register = async (username: string, email: string, password: string) => {
