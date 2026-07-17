@@ -151,14 +151,6 @@ export const ClientsList: React.FC = () => {
     <div>
       {/* Шапка */}
       <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Клиенты</h1>
-          {user && (
-            <p className="text-sm text-gray-400">
-              Добро пожаловать, {user.username}!
-            </p>
-          )}
-        </div>
         <div className="flex gap-3 items-center">
           <button
             onClick={() => {
