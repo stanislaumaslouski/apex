@@ -114,9 +114,9 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
     return formatted;
   };
 
-  // Очистка форматирования для сохранения
+  // 🔥 ИСПРАВЛЕНО: убрал экранирование у дефиса
   const cleanPhoneNumber = (formatted: string): string => {
-    return formatted.replace(/[\s()\-]/g, '');
+    return formatted.replace(/[\s()-]/g, ''); // <- вот здесь исправление!
   };
 
   const validatePhone = (phone: string): boolean => {
