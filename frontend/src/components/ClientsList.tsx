@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { clientsApi, Client } from '../api/api';
 import { useAuth } from '../contexts/AuthContext';
 import { ClientForm } from './ClientForm';
 import { countries } from '../data/countries';
 
 export const ClientsList: React.FC = () => {
+  const navigate = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
   const [filteredClients, setFilteredClients] = useState<Client[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -151,6 +153,14 @@ export const ClientsList: React.FC = () => {
     <div>
       {/* Шапка */}
       <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Клиенты</h1>
+          {user && (
+            <p className="text-sm text-gray-400">
+              Добро пожаловать, {user.username}!
+            </p>
+          )}
+        </div>
         <div className="flex gap-3 items-center">
           <button
             onClick={() => {
@@ -285,7 +295,11 @@ export const ClientsList: React.FC = () => {
               {filteredClients.map((client) => {
                 const country = countries.find(c => c.code === client.country);
                 return (
-                  <tr key={client.id} className="hover:bg-yellow-400/5 transition-colors">
+                  <tr
+                    key={client.id}
+                    className="hover:bg-yellow-400/5 transition-colors cursor-pointer"
+                    onClick={() => navigate(`/clients/${client.id}`)}
+                  >
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                       #{client.id}
                     </td>
@@ -323,13 +337,19 @@ export const ClientsList: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm space-x-3">
                       <button
-                        onClick={() => handleEdit(client)}
+                        onClick={(e) => {
+                          e.stopPropagation(); // Останавливаем всплытие, чтобы не переходить на карточку
+                          handleEdit(client);
+                        }}
                         className="text-yellow-400 hover:text-yellow-300 transition-colors"
                       >
                         ✏️
                       </button>
                       <button
-                        onClick={() => handleDelete(client.id)}
+                        onClick={(e) => {
+                          e.stopPropagation(); // Останавливаем всплытие, чтобы не переходить на карточку
+                          handleDelete(client.id);
+                        }}
                         className="text-red-400 hover:text-red-300 transition-colors"
                       >
                         🗑️

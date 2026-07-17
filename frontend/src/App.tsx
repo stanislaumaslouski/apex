@@ -5,6 +5,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { ClientsList } from './components/ClientsList';
+import { ClientCard } from './pages/ClientCard'; // Добавляем импорт
 
 function Navigation() {
   const { user, logout, isAuthenticated } = useAuth();
@@ -66,18 +67,39 @@ function AppContent() {
         <div className="px-4 py-6 sm:px-0">
           <div className="bg-gray-900/50 backdrop-blur-sm border border-yellow-600/20 rounded-2xl shadow-2xl shadow-yellow-600/5 p-6">
             <Routes>
+              {/* Публичные маршруты */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+
+              {/* Защищенные маршруты */}
               <Route path="/" element={
                 <ProtectedRoute>
                   <ClientsList />
                 </ProtectedRoute>
               } />
+
+              {/* Список клиентов */}
+              <Route path="/clients" element={
+                <ProtectedRoute>
+                  <ClientsList />
+                </ProtectedRoute>
+              } />
+
+              {/* Карточка клиента - НОВЫЙ МАРШРУТ */}
+              <Route path="/clients/:id" element={
+                <ProtectedRoute>
+                  <ClientCard />
+                </ProtectedRoute>
+              } />
+
+              {/* Создание нового клиента */}
               <Route path="/clients/new" element={
                 <ProtectedRoute>
                   <ClientsList />
                 </ProtectedRoute>
               } />
+
+              {/* 404 - перенаправление на главную */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </div>
