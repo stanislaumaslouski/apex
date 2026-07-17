@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { clientsApi, Client } from '../api/api';
 import { useAuth } from '../contexts/AuthContext';
 import { ClientForm } from './ClientForm';
@@ -15,28 +15,59 @@ export const ClientsList: React.FC = () => {
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const { user } = useAuth();
 
+  // Обернул loadClients в useCallback
+  const loadClients = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await clientsApi.getAll();
+      setClients(response.data);
+      setError(null);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Ошибка загрузки клиентов');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []); // Пустой массив зависимостей, т.к. функция не зависит от внешних переменных
+
+  // Обернул filterClients в useCallback
+  const filterClients = useCallback(() => {
+    let filtered = [...clients];
+
+    // Фильтр по стране
+    if (selectedCountry !== 'all') {
+      filtered = filtered.filter(client => client.country === selectedCountry);
+    }
+
+    // Поиск
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter(client => {
+        const fullName = `${client.first_name} ${client.last_name}`.toLowerCase();
+        if (fullName.includes(searchLower)) return true;
+        if (client.last_name.toLowerCase().includes(searchLower)) return true;
+        if (client.email.toLowerCase().includes(searchLower)) return true;
+
+        const phoneClean = client.phone?.replace(/[\s()\-+]/g, '') || '';
+        const searchClean = searchLower.replace(/[\s()\-+]/g, '');
+        if (phoneClean.includes(searchClean)) return true;
+
+        return false;
+      });
+    }
+
+    setFilteredClients(filtered);
+  }, [clients, searchTerm, selectedCountry]); // Зависимости: clients, searchTerm, selectedCountry
+
+  // Загрузка клиентов при монтировании
   useEffect(() => {
     loadClients();
-  }, []);
+  }, [loadClients]); // Теперь зависимость - loadClients (стабильная из-за useCallback)
 
+  // Фильтрация при изменении данных
   useEffect(() => {
     filterClients();
-  }, [searchTerm, selectedCountry, clients]);
-
-  const loadClients = async () => {
-  try {
-    setLoading(true);
-    // ✅ Передаем параметр country
-    const response = await clientsApi.getAll(selectedCountry);
-    setClients(response.data);
-    setError(null);
-  } catch (err: any) {
-    setError(err.response?.data?.detail || 'Ошибка загрузки клиентов');
-    console.error(err);
-  } finally {
-    setLoading(false);
-  }
-};
+  }, [filterClients]); // Теперь зависимость - filterClients (стабильная из-за useCallback)
 
   const handleEdit = (client: Client) => {
     setEditingClient(client);
@@ -63,35 +94,6 @@ export const ClientsList: React.FC = () => {
       setError(err.response?.data?.detail || 'Ошибка удаления клиента');
       console.error(err);
     }
-  };
-
-  // Функция фильтрации (поиск + страна)
-  const filterClients = () => {
-    let filtered = [...clients];
-
-    // Фильтр по стране
-    if (selectedCountry !== 'all') {
-      filtered = filtered.filter(client => client.country === selectedCountry);
-    }
-
-    // Поиск
-    if (searchTerm.trim()) {
-      const searchLower = searchTerm.toLowerCase().trim();
-      filtered = filtered.filter(client => {
-        const fullName = `${client.first_name} ${client.last_name}`.toLowerCase();
-        if (fullName.includes(searchLower)) return true;
-        if (client.last_name.toLowerCase().includes(searchLower)) return true;
-        if (client.email.toLowerCase().includes(searchLower)) return true;
-
-        const phoneClean = client.phone?.replace(/[\s()\-+]/g, '') || '';
-        const searchClean = searchLower.replace(/[\s()\-+]/g, '');
-        if (phoneClean.includes(searchClean)) return true;
-
-        return false;
-      });
-    }
-
-    setFilteredClients(filtered);
   };
 
   const formatPhoneNumber = (phone: string): string => {
@@ -170,7 +172,7 @@ export const ClientsList: React.FC = () => {
         </div>
       </div>
 
-      {/* ✅ СТРОКА ПОИСКА И ФИЛЬТР ПО СТРАНАМ */}
+      {/* Строка поиска и фильтр по странам */}
       <div className="mb-6 flex flex-wrap gap-4">
         {/* Поле поиска */}
         <div className="flex-1 min-w-[200px]">
@@ -198,7 +200,7 @@ export const ClientsList: React.FC = () => {
           </div>
         </div>
 
-        {/* ✅ ФИЛЬТР ПО СТРАНАМ */}
+        {/* Фильтр по странам */}
         <div className="min-w-[200px]">
           <select
             value={selectedCountry}
