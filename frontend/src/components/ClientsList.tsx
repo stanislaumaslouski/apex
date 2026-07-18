@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { clientsApi, Client } from '../api/api';
 import { ClientForm } from './ClientForm';
 import { countries } from '../data/countries';
+import { Flag } from './Flag';
 
 export const ClientsList: React.FC = () => {
   const navigate = useNavigate();
@@ -14,7 +15,6 @@ export const ClientsList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
-  // ❌ УДАЛЕНО const { user } = useAuth();
 
   const loadClients = useCallback(async () => {
     try {
@@ -144,7 +144,6 @@ export const ClientsList: React.FC = () => {
 
   return (
     <div>
-      {/* Шапка — без приветствия */}
       <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-white">Клиенты</h1>
@@ -162,7 +161,6 @@ export const ClientsList: React.FC = () => {
         </div>
       </div>
 
-      {/* Остальной код без изменений... */}
       <div className="mb-6 flex flex-wrap gap-4">
         <div className="flex-1 min-w-[200px]">
           <div className="relative">
@@ -303,7 +301,12 @@ export const ClientsList: React.FC = () => {
                       {formatPhoneNumber(client.phone || '')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                      {country ? `${country.flag} ${country.name}` : '-'}
+                      {country ? (
+                        <div className="flex items-center gap-2">
+                          <Flag code={country.flag} size={20} />
+                          {country.name}
+                        </div>
+                      ) : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                       {client.company || '-'}

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { clientsApi, Client } from '../api/api';
 import { countries } from '../data/countries';
+import { Flag } from '../components/Flag';
 
 export const ClientCard: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -132,8 +133,13 @@ export const ClientCard: React.FC = () => {
             <div className="space-y-3">
               <div>
                 <p className="text-sm text-gray-400">Страна / Регион</p>
-                <p className="text-white">
-                  {country ? `${country.flag} ${country.name}` : client.country || '-'}
+                <p className="text-white flex items-center gap-2">
+                  {country ? (
+                    <>
+                      <Flag code={country.flag} size={24} />
+                      {country.name}
+                    </>
+                  ) : client.country || '-'}
                 </p>
               </div>
               <div>

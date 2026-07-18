@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { countries, Country } from '../data/countries';
+import { Flag } from './Flag';
 
 interface PhoneInputProps {
   value: string;
@@ -26,19 +27,16 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
   const [displayValue, setDisplayValue] = useState<string>('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Определяем страну по номеру
   useEffect(() => {
     if (value) {
       const matched = countries.find(c => value.startsWith(c.dialCode));
       if (matched) {
         setSelectedCountry(matched);
       }
-      // Форматируем отображение
       setDisplayValue(formatPhoneNumber(value));
     }
   }, [value]);
 
-  // Закрытие дропдауна при клике вне
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -49,19 +47,15 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Форматирование номера
   const formatPhoneNumber = (phone: string): string => {
     if (!phone) return '';
 
-    // Удаляем все кроме цифр и +
     const cleaned = phone.replace(/[^\d+]/g, '');
     if (!cleaned) return '';
 
-    // Определяем код страны
     let dialCode = '';
     let rest = cleaned;
 
-    // Находим код страны
     for (const country of countries) {
       if (cleaned.startsWith(country.dialCode)) {
         dialCode = country.dialCode;
@@ -70,7 +64,6 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
       }
     }
 
-    // Если код не найден, используем + и все цифры
     if (!dialCode) {
       if (cleaned.startsWith('+')) {
         const digits = cleaned.slice(1);
@@ -82,13 +75,11 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
       return cleaned;
     }
 
-    // Форматирование с кодом страны
     let formatted = dialCode;
     const digits = rest.replace(/\D/g, '');
 
     if (digits.length === 0) return formatted;
 
-    // Форматирование по шаблону: +XXX (XX) XXX-XX-XX
     if (digits.length <= 2) {
       formatted += ' ' + digits;
     } else if (digits.length <= 4) {
@@ -114,30 +105,25 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
     return formatted;
   };
 
-  // 🔥 ИСПРАВЛЕНО: убрал экранирование у дефиса
   const cleanPhoneNumber = (formatted: string): string => {
-    return formatted.replace(/[\s()-]/g, ''); // <- вот здесь исправление!
+    return formatted.replace(/[\s()-]/g, '');
   };
 
   const validatePhone = (phone: string): boolean => {
     if (!phone) return !required;
 
-    // Удаляем все кроме цифр и +
     const cleaned = phone.replace(/[^\d+]/g, '');
 
-    // Проверка: только цифры и + в начале
     if (!/^\+?\d*$/.test(cleaned)) {
       setLocalError('Введите корректный номер телефона');
       return false;
     }
 
-    // Проверка: + только в начале
     if (cleaned.indexOf('+') > 0) {
       setLocalError('Введите корректный номер телефона');
       return false;
     }
 
-    // Подсчет цифр
     const digits = cleaned.replace(/\D/g, '');
     if (digits.length < 10 || digits.length > 15) {
       setLocalError('Введите корректный номер телефона');
@@ -151,25 +137,20 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value;
 
-    // Сохраняем только цифры и +
     let cleaned = rawValue.replace(/[^\d+]/g, '');
 
-    // Убедимся, что + только в начале
     if (cleaned.indexOf('+') > 0) {
       cleaned = cleaned.replace(/\+/g, '');
     }
 
-    // Ограничиваем длину (код + 15 цифр)
-    const maxLength = 18; // + (до 3 цифр код) + 15 цифр
+    const maxLength = 18;
     if (cleaned.length > maxLength) {
       cleaned = cleaned.slice(0, maxLength);
     }
 
-    // Форматируем для отображения
     const formatted = formatPhoneNumber(cleaned);
     setDisplayValue(formatted);
 
-    // Передаем чистый номер (без форматирования)
     const cleanValue = cleanPhoneNumber(formatted);
     onChange(cleanValue);
     validatePhone(cleanValue);
@@ -179,7 +160,6 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
     setSelectedCountry(country);
     setIsOpen(false);
 
-    // Очищаем номер от старого кода
     let newValue = value;
     countries.forEach(c => {
       if (newValue.startsWith(c.dialCode)) {
@@ -187,7 +167,6 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
       }
     });
 
-    // Добавляем новый код
     const finalValue = country.dialCode + newValue;
     const formatted = formatPhoneNumber(finalValue);
     setDisplayValue(formatted);
@@ -195,7 +174,6 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
     validatePhone(finalValue);
   };
 
-  // Отображение подсказки по формату
   const getFormatHint = (): string => {
     if (!displayValue) return 'Пример: +375 (29) 123-45-67';
     return '';
@@ -208,21 +186,19 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
       </label>
 
       <div className="flex">
-        {/* Выбор страны */}
         <div className="relative" ref={dropdownRef}>
           <button
             type="button"
             onClick={() => setIsOpen(!isOpen)}
             className="h-[50px] px-3 bg-gray-700/50 border border-r-0 border-gray-600 rounded-l-lg hover:bg-gray-600/50 transition-colors flex items-center gap-2"
           >
-            <span className="text-xl">{selectedCountry.flag}</span>
+            <Flag code={selectedCountry.flag} size={24} />
             <span className="text-white text-sm">{selectedCountry.dialCode}</span>
             <svg className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
 
-          {/* Дропдаун стран */}
           {isOpen && (
             <div className="absolute left-0 top-full mt-1 w-72 max-h-60 overflow-y-auto bg-gray-800 border border-gray-600 rounded-lg shadow-2xl z-50">
               <div className="sticky top-0 bg-gray-800 p-2 border-b border-gray-600">
@@ -249,7 +225,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
                     selectedCountry.code === country.code ? 'bg-yellow-400/20' : ''
                   }`}
                 >
-                  <span className="text-xl">{country.flag}</span>
+                  <Flag code={country.flag} size={24} />
                   <span className="text-white flex-1">{country.name}</span>
                   <span className="text-gray-400 text-sm">{country.dialCode}</span>
                 </button>
@@ -258,7 +234,6 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
           )}
         </div>
 
-        {/* Поле ввода телефона */}
         <input
           type="tel"
           value={displayValue}
@@ -275,14 +250,12 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
         />
       </div>
 
-      {/* Сообщение об ошибке */}
       {(error || localError) && (
         <p className="mt-1 text-sm text-red-400">
           {error || localError}
         </p>
       )}
 
-      {/* Подсказка по формату */}
       {!error && !localError && displayValue && (
         <p className="mt-1 text-xs text-gray-500">
           {getFormatHint()}

@@ -6,17 +6,18 @@ export interface Country {
 }
 
 export const countries: Country[] = [
-  { code: 'BY', name: 'Беларусь', flag: '🇧🇾', dialCode: '+375' },
-  { code: 'RU', name: 'Россия', flag: '🇷🇺', dialCode: '+7' },
-  { code: 'UA', name: 'Украина', flag: '🇺🇦', dialCode: '+380' },
-  { code: 'KZ', name: 'Казахстан', flag: '🇰🇿', dialCode: '+7' },
-  { code: 'PL', name: 'Польша', flag: '🇵🇱', dialCode: '+48' },
-  { code: 'LT', name: 'Литва', flag: '🇱🇹', dialCode: '+370' },
-  { code: 'LV', name: 'Латвия', flag: '🇱🇻', dialCode: '+371' },
-  { code: 'EE', name: 'Эстония', flag: '🇪🇪', dialCode: '+372' },
+  // Европа
+  { code: 'BY', name: 'Беларусь', flag: 'by', dialCode: '+375' },
+  { code: 'RU', name: 'Россия', flag: 'ru', dialCode: '+7' },
+  { code: 'UA', name: 'Украина', flag: 'ua', dialCode: '+380' },
+  { code: 'PL', name: 'Польша', flag: 'pl', dialCode: '+48' },
+  { code: 'LT', name: 'Литва', flag: 'lt', dialCode: '+370' },
+  { code: 'LV', name: 'Латвия', flag: 'lv', dialCode: '+371' },
+  { code: 'EE', name: 'Эстония', flag: 'ee', dialCode: '+372' },
+  { code: 'KZ', name: 'Казахстан', flag: 'kz', dialCode: '+7' },
+
 ];
 
-// Для фильтрации используем список стран с дополнительным "Все страны"
 export const filterCountries = [
   { code: 'all', name: 'Все страны', flag: '🌍', dialCode: '' },
   ...countries,
