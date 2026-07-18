@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { clientsApi, Client } from '../api/api';
 import { countries } from '../data/countries';
 import { PhoneInput } from './PhoneInput';
+import { CountrySelect } from './CountrySelect';  // ✅ Добавьте импорт
 
 interface ClientFormProps {
   client?: Client | null;
@@ -69,7 +70,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
     }
   }, [id, propClient, loadClient, fillForm]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -79,6 +80,10 @@ export const ClientForm: React.FC<ClientFormProps> = ({
 
   const handlePhoneChange = (value: string) => {
     setFormData(prev => ({ ...prev, phone: value }));
+  };
+
+  const handleCountryChange = (value: string) => {
+    setFormData(prev => ({ ...prev, country: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -208,22 +213,14 @@ export const ClientForm: React.FC<ClientFormProps> = ({
           />
         </div>
 
+        {/* ✅ Используем CountrySelect вместо обычного select */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-1">
-            Страна
-          </label>
-          <select
-            name="country"
+          <CountrySelect
             value={formData.country}
-            onChange={handleChange}
-            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all appearance-none"
-          >
-            {countries.map((country) => (
-              <option key={country.code} value={country.code}>
-                {country.flag} {country.name}
-              </option>
-            ))}
-          </select>
+            onChange={handleCountryChange}
+            label="Страна"
+            placeholder="Выберите страну"
+          />
         </div>
 
         <div>

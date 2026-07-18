@@ -136,7 +136,7 @@ export const ClientCard: React.FC = () => {
                 <p className="text-white flex items-center gap-2">
                   {country ? (
                     <>
-                      <Flag code={country.flag} size={24} />
+                      <Flag code={country.flag} size={16} />
                       {country.name}
                     </>
                   ) : client.country || '-'}

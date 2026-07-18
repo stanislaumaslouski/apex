@@ -2,8 +2,9 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { clientsApi, Client } from '../api/api';
 import { ClientForm } from './ClientForm';
+import { CountrySelect } from './CountrySelect';
 import { countries } from '../data/countries';
-import { Flag } from './Flag';
+import { Flag } from './Flag';  // ✅ Добавьте импорт Flag
 
 export const ClientsList: React.FC = () => {
   const navigate = useNavigate();
@@ -187,19 +188,12 @@ export const ClientsList: React.FC = () => {
           </div>
         </div>
 
-        <div className="min-w-[200px]">
-          <select
+        <div className="min-w-[220px]">
+          <CountrySelect
             value={selectedCountry}
-            onChange={(e) => handleCountryChange(e.target.value)}
-            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all appearance-none"
-          >
-            <option value="all">🌍 Все страны</option>
-            {countries.map((country) => (
-              <option key={country.code} value={country.code}>
-                {country.flag} {country.name}
-              </option>
-            ))}
-          </select>
+            onChange={handleCountryChange}
+            label="Фильтр по стране"
+          />
         </div>
       </div>
 
@@ -312,11 +306,7 @@ export const ClientsList: React.FC = () => {
                       {client.company || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        client.is_active
-                          ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                          : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                      }`}>
+                      <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${client.is_active ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
                         {client.is_active ? '● Активен' : '○ Неактивен'}
                       </span>
                     </td>

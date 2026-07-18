@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { countries, Country } from '../data/countries';
+import { Flag } from '../components/Flag';
 
 interface PhoneInputProps {
   value: string;
@@ -177,7 +178,7 @@ export const PhoneInput: React.FC<PhoneInputProps> = ({
                     selectedCountry.code === country.code ? 'bg-yellow-400/20' : ''
                   }`}
                 >
-                  <span className="text-xl">{country.flag}</span>
+                  <Flag code={country.flag} size={16} />
                   <span className="text-white flex-1">{country.name}</span>
                   <span className="text-gray-400 text-sm">{country.dialCode}</span>
                 </button>
