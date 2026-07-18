@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { clientsApi, Client } from '../api/api';
-import { useAuth } from '../contexts/AuthContext';
 import { ClientForm } from './ClientForm';
 import { countries } from '../data/countries';
 
@@ -15,8 +14,7 @@ export const ClientsList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
-  // user используется в JSX для приветствия, оставляем
-  const { user } = useAuth();
+  // ❌ УДАЛЕНО const { user } = useAuth();
 
   const loadClients = useCallback(async () => {
     try {
@@ -146,10 +144,10 @@ export const ClientsList: React.FC = () => {
 
   return (
     <div>
+      {/* Шапка — без приветствия */}
       <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-white">Клиенты</h1>
-
         </div>
         <div className="flex gap-3 items-center">
           <button
@@ -164,6 +162,7 @@ export const ClientsList: React.FC = () => {
         </div>
       </div>
 
+      {/* Остальной код без изменений... */}
       <div className="mb-6 flex flex-wrap gap-4">
         <div className="flex-1 min-w-[200px]">
           <div className="relative">
