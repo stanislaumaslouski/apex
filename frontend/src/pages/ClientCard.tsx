@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { clientsApi, Client } from '../api/api';
 import { countries } from '../data/countries';
 import { Flag } from '../components/Flag';
+import { ConfirmModal } from '../components/ConfirmModal';
 
 export const ClientCard: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -10,6 +11,10 @@ export const ClientCard: React.FC = () => {
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Состояние для модального окна
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadClient = useCallback(async () => {
     if (!id) return;
@@ -47,6 +52,29 @@ export const ClientCard: React.FC = () => {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const handleDeleteClick = () => {
+    setIsModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!client) return;
+
+    setIsDeleting(true);
+    try {
+      await clientsApi.delete(client.id);
+      setIsModalOpen(false);
+      navigate('/clients');
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Ошибка удаления клиента');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const cancelDelete = () => {
+    setIsModalOpen(false);
   };
 
   if (loading) {
@@ -136,7 +164,7 @@ export const ClientCard: React.FC = () => {
                 <p className="text-white flex items-center gap-2">
                   {country ? (
                     <>
-                      <Flag code={country.flag} size={16} />
+                      <Flag code={country.flag} size={20} />
                       {country.name}
                     </>
                   ) : client.country || '-'}
@@ -170,22 +198,25 @@ export const ClientCard: React.FC = () => {
             ✏️ Редактировать
           </button>
           <button
-            onClick={async () => {
-              if (window.confirm('Вы уверены, что хотите удалить этого клиента?')) {
-                try {
-                  await clientsApi.delete(client.id);
-                  navigate('/clients');
-                } catch (err: any) {
-                  alert(err.response?.data?.detail || 'Ошибка удаления клиента');
-                }
-              }
-            }}
+            onClick={handleDeleteClick}
             className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 font-medium rounded-lg transition-all border border-red-500/20"
           >
             🗑️ Удалить
           </button>
         </div>
       </div>
+
+      {/* Модальное окно подтверждения удаления */}
+      <ConfirmModal
+        isOpen={isModalOpen}
+        title="Удаление клиента"
+        message={`Вы уверены, что хотите удалить клиента ${client.first_name} ${client.last_name}? Это действие нельзя отменить.`}
+        confirmText="Удалить"
+        cancelText="Отмена"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+        isLoading={isDeleting}
+      />
     </div>
   );
 };

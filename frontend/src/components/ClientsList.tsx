@@ -4,7 +4,8 @@ import { clientsApi, Client } from '../api/api';
 import { ClientForm } from './ClientForm';
 import { CountrySelect } from './CountrySelect';
 import { countries } from '../data/countries';
-import { Flag } from './Flag';  // ✅ Добавьте импорт Flag
+import { Flag } from './Flag';
+import { ConfirmModal } from './ConfirmModal';
 
 export const ClientsList: React.FC = () => {
   const navigate = useNavigate();
@@ -16,6 +17,11 @@ export const ClientsList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+
+  // Состояние для модального окна
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadClients = useCallback(async () => {
     try {
@@ -81,15 +87,31 @@ export const ClientsList: React.FC = () => {
     setEditingClient(null);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Вы уверены, что хотите удалить этого клиента?')) return;
+  const handleDelete = (id: number) => {
+    setClientToDelete(id);
+    setIsModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!clientToDelete) return;
+
+    setIsDeleting(true);
     try {
-      await clientsApi.delete(id);
+      await clientsApi.delete(clientToDelete);
       await loadClients();
+      setIsModalOpen(false);
+      setClientToDelete(null);
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Ошибка удаления клиента');
       console.error(err);
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+  const cancelDelete = () => {
+    setIsModalOpen(false);
+    setClientToDelete(null);
   };
 
   const formatPhoneNumber = (phone: string): string => {
@@ -322,7 +344,7 @@ export const ClientsList: React.FC = () => {
                       </button>
                       <button
                         onClick={(e) => {
-                          e.stopPropagation();
+                          e.stopPropagation();  // ✅ Предотвращает переход на карточку
                           handleDelete(client.id);
                         }}
                         className="text-red-400 hover:text-red-300 transition-colors"
@@ -337,6 +359,18 @@ export const ClientsList: React.FC = () => {
           </table>
         </div>
       )}
+
+      {/* Модальное окно подтверждения удаления */}
+      <ConfirmModal
+        isOpen={isModalOpen}
+        title="Удаление клиента"
+        message="Вы уверены, что хотите удалить этого клиента? Это действие нельзя отменить."
+        confirmText="Удалить"
+        cancelText="Отмена"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+        isLoading={isDeleting}
+      />
     </div>
   );
 };
