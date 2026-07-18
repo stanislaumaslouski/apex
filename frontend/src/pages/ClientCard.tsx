@@ -132,36 +132,32 @@ export const ClientCard: React.FC = () => {
             </div>
           </div>
 
-          {/* Правая колонка */}
+          {/* Правая колонка — УБРАН ЛИШНИЙ ЗАГОЛОВОК */}
           <div className="space-y-4">
-            <div>
-              <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
-                Дополнительная информация
-              </h3>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-gray-400">Страна / Регион</p>
-                  <p className="text-white">
-                    {country ? `${country.flag} ${country.name}` : client.country || '-'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400">Компания</p>
-                  <p className="text-white">{client.company || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400">Дата создания</p>
-                  <p className="text-white">{formatDate(client.created_at)}</p>
-                </div>
-                {client.notes && (
-                  <div>
-                    <p className="text-sm text-gray-400">Примечания</p>
-                    <p className="text-white bg-gray-700/30 p-3 rounded-lg mt-1 whitespace-pre-wrap">
-                      {client.notes}
-                    </p>
-                  </div>
-                )}
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm text-gray-400">Страна / Регион</p>
+                <p className="text-white">
+                  {country ? `${country.flag} ${country.name}` : client.country || '-'}
+                </p>
               </div>
+              <div>
+                <p className="text-sm text-gray-400">Компания</p>
+                <p className="text-white">{client.company || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-400">Дата создания</p>
+                <p className="text-white">{formatDate(client.created_at)}</p>
+              </div>
+              {/* Показываем notes только если оно есть */}
+              {client.notes && client.notes.trim() && (
+                <div>
+                  <p className="text-sm text-gray-400">Дополнительная информация</p>
+                  <div className="bg-gray-700/30 p-3 rounded-lg mt-1 whitespace-pre-wrap text-white">
+                    {client.notes}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, func
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, func
 from app.database import Base
 
 class Client(Base):
@@ -10,7 +10,8 @@ class Client(Base):
     email = Column(String(255), unique=True, index=True, nullable=False)
     phone = Column(String(20), nullable=True)
     company = Column(String(200), nullable=True)
-    country = Column(String(10), nullable=True)  # ✅ Код страны (BY, RU, US и т.д.)
+    country = Column(String(10), nullable=True)
+    notes = Column(Text, nullable=True)  # ← ДОБАВЛЯЕМ ЭТУ СТРОКУ
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

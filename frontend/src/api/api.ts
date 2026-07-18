@@ -42,6 +42,7 @@ export interface Client {
   company?: string;
   country?: string;
   is_active: boolean;
+  notes?: string;        // ✅ Добавлено поле для дополнительной информации
   created_at: string;
   updated_at?: string;
 }

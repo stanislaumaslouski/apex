@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Client, clientsApi } from '../api/api';
-import { PhoneInput } from './PhoneInput';
+import { clientsApi, Client } from '../api/api';
 import { countries } from '../data/countries';
+import { PhoneInput } from './PhoneInput';
 
 interface ClientFormProps {
   client?: Client | null;
@@ -12,82 +12,86 @@ interface ClientFormProps {
 export const ClientForm: React.FC<ClientFormProps> = ({
   client,
   onSuccess,
-  onCancel
+  onCancel,
 }) => {
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
     email: '',
     phone: '',
+    country: 'BY',
     company: '',
-    country: '',
+    notes: '',        // ← ДОБАВЛЕНО ПОЛЕ notes
     is_active: true,
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [phoneError, setPhoneError] = useState<string>('');
-  const isEditing = !!client;
 
   useEffect(() => {
     if (client) {
       setFormData({
-        first_name: client.first_name,
-        last_name: client.last_name,
-        email: client.email,
+        first_name: client.first_name || '',
+        last_name: client.last_name || '',
+        email: client.email || '',
         phone: client.phone || '',
+        country: client.country || 'BY',
         company: client.company || '',
-        country: client.country || '',
-        is_active: client.is_active,
+        notes: client.notes || '',    // ← ДОБАВЛЕНО
+        is_active: client.is_active !== undefined ? client.is_active : true,
       });
     }
   }, [client]);
 
-  // ✅ ИСПРАВЛЕННЫЙ handleChange
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-    // Для checkbox проверяем отдельно
-    if (type === 'checkbox') {
-      const checked = (e.target as HTMLInputElement).checked;
-      setFormData(prev => ({
-        ...prev,
-        [name]: checked,
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value,
-      }));
-    }
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
+    }));
   };
 
-  const handlePhoneChange = (phone: string) => {
-    setFormData(prev => ({ ...prev, phone }));
-    setPhoneError('');
+  const handlePhoneChange = (value: string) => {
+    setFormData(prev => ({ ...prev, phone: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (formData.phone) {
-      const digits = formData.phone.replace(/\D/g, '');
-      if (digits.length < 10 || digits.length > 15) {
-        setPhoneError('Введите корректный номер телефона');
-        return;
-      }
-    }
-
     setLoading(true);
     setError(null);
 
     try {
-      if (isEditing && client) {
-        await clientsApi.update(client.id, formData);
-      } else {
-        await clientsApi.create(formData);
+      // Валидация
+      if (!formData.first_name.trim() || !formData.last_name.trim()) {
+        throw new Error('Имя и фамилия обязательны для заполнения');
       }
+      if (!formData.email.trim()) {
+        throw new Error('Email обязателен для заполнения');
+      }
+      if (!formData.phone.trim()) {
+        throw new Error('Телефон обязателен для заполнения');
+      }
+
+      const dataToSend = {
+        ...formData,
+        first_name: formData.first_name.trim(),
+        last_name: formData.last_name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        company: formData.company.trim() || undefined,
+        notes: formData.notes.trim() || undefined,  // ← ДОБАВЛЕНО
+      };
+
+      if (client) {
+        // Обновление
+        await clientsApi.update(client.id, dataToSend);
+      } else {
+        // Создание
+        await clientsApi.create(dataToSend);
+      }
+
       onSuccess();
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Ошибка сохранения клиента');
+      setError(err.response?.data?.detail || err.message || 'Ошибка сохранения клиента');
       console.error(err);
     } finally {
       setLoading(false);
@@ -95,10 +99,10 @@ export const ClientForm: React.FC<ClientFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-gray-800/30 border border-yellow-600/20 rounded-xl p-6">
-      <h3 className="text-xl font-bold text-white mb-4">
-        {isEditing ? '✏️ Редактирование клиента' : '➕ Новый клиент'}
-      </h3>
+    <form onSubmit={handleSubmit} className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-6">
+      <h2 className="text-xl font-bold text-white mb-4">
+        {client ? '✏️ Редактирование клиента' : '➕ Новый клиент'}
+      </h2>
 
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg mb-4">
@@ -107,49 +111,65 @@ export const ClientForm: React.FC<ClientFormProps> = ({
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <input
-          type="text"
-          name="first_name"
-          placeholder="Имя *"
-          required
-          value={formData.first_name}
-          onChange={handleChange}
-          className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
-        />
-        <input
-          type="text"
-          name="last_name"
-          placeholder="Фамилия *"
-          required
-          value={formData.last_name}
-          onChange={handleChange}
-          className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
-        />
-        <input
-          type="email"
-          name="email"
-          placeholder="Email *"
-          required
-          value={formData.email}
-          onChange={handleChange}
-          className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
-        />
-        <PhoneInput
-          value={formData.phone}
-          onChange={handlePhoneChange}
-          error={phoneError}
-          placeholder="Введите номер телефона"
-        />
-        <input
-          type="text"
-          name="company"
-          placeholder="Компания"
-          value={formData.company}
-          onChange={handleChange}
-          className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
-        />
+        {/* Имя */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">
+            Имя <span className="text-yellow-400">*</span>
+          </label>
+          <input
+            type="text"
+            name="first_name"
+            value={formData.first_name}
+            onChange={handleChange}
+            required
+            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
+            placeholder="Введите имя"
+          />
+        </div>
 
-        {/* ВЫБОР СТРАНЫ */}
+        {/* Фамилия */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">
+            Фамилия <span className="text-yellow-400">*</span>
+          </label>
+          <input
+            type="text"
+            name="last_name"
+            value={formData.last_name}
+            onChange={handleChange}
+            required
+            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
+            placeholder="Введите фамилию"
+          />
+        </div>
+
+        {/* Email */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">
+            Email <span className="text-yellow-400">*</span>
+          </label>
+          <input
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            required
+            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
+            placeholder="example@email.com"
+          />
+        </div>
+
+        {/* Телефон */}
+        <div>
+          <PhoneInput
+            value={formData.phone}
+            onChange={handlePhoneChange}
+            required
+            placeholder="Введите номер телефона"
+          />
+        </div>
+
+        {/* Страна */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">
             Страна
@@ -158,9 +178,8 @@ export const ClientForm: React.FC<ClientFormProps> = ({
             name="country"
             value={formData.country}
             onChange={handleChange}
-            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all appearance-none"
+            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all appearance-none"
           >
-            <option value="">Выберите страну</option>
             {countries.map((country) => (
               <option key={country.code} value={country.code}>
                 {country.flag} {country.name}
@@ -169,33 +188,67 @@ export const ClientForm: React.FC<ClientFormProps> = ({
           </select>
         </div>
 
-        <div className="flex items-center space-x-3">
-          <input
-            type="checkbox"
-            name="is_active"
-            id="is_active"
-            checked={formData.is_active}
-            onChange={handleChange}
-            className="w-5 h-5 text-yellow-400 focus:ring-yellow-400 border-gray-600 rounded bg-gray-700/50"
-          />
-          <label htmlFor="is_active" className="text-gray-300">
-            Активен
+        {/* Компания */}
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">
+            Компания
           </label>
+          <input
+            type="text"
+            name="company"
+            value={formData.company}
+            onChange={handleChange}
+            className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
+            placeholder="Название компании"
+          />
         </div>
       </div>
 
-      <div className="mt-6 flex gap-3">
+      {/* Дополнительная информация (notes) - НОВОЕ ПОЛЕ */}
+      <div className="mt-4">
+        <label className="block text-sm font-medium text-gray-300 mb-1">
+          Дополнительная информация
+        </label>
+        <textarea
+          name="notes"
+          value={formData.notes}
+          onChange={handleChange}
+          rows={3}
+          className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all resize-y"
+          placeholder="Введите дополнительную информацию о клиенте..."
+        />
+        <p className="mt-1 text-xs text-gray-500">
+          Максимум 500 символов
+        </p>
+      </div>
+
+      {/* Статус */}
+      <div className="mt-4 flex items-center gap-3">
+        <input
+          type="checkbox"
+          name="is_active"
+          checked={formData.is_active}
+          onChange={handleChange}
+          className="w-5 h-5 rounded border-gray-600 bg-gray-700/50 text-yellow-400 focus:ring-yellow-400 focus:ring-2"
+        />
+        <label className="text-sm font-medium text-gray-300">
+          Активен
+        </label>
+      </div>
+
+      {/* Кнопки */}
+      <div className="flex gap-3 mt-6">
         <button
           type="submit"
           disabled={loading}
-          className="px-6 py-2.5 bg-yellow-400 hover:bg-yellow-500 text-black font-medium rounded-lg transition-all transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:ring-offset-2 focus:ring-offset-gray-800 disabled:opacity-50"
+          className="flex-1 px-6 py-3 bg-yellow-400 hover:bg-yellow-500 disabled:bg-yellow-600/50 text-black font-medium rounded-lg transition-all"
         >
-          {loading ? 'Сохранение...' : isEditing ? 'Обновить' : 'Сохранить'}
+          {loading ? 'Сохранение...' : client ? '💾 Сохранить' : '➕ Создать'}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="px-6 py-2.5 bg-gray-700 hover:bg-gray-600 text-white font-medium rounded-lg transition-all"
+          className="px-6 py-3 bg-gray-700/50 hover:bg-gray-600/50 text-gray-300 font-medium rounded-lg transition-all"
         >
           Отмена
         </button>

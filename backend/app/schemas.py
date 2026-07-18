@@ -9,6 +9,7 @@ class ClientBase(BaseModel):
     phone: Optional[str] = Field(None, max_length=20)
     company: Optional[str] = Field(None, max_length=200)
     country: Optional[str] = Field(None, max_length=10)
+    notes: Optional[str] = Field(None, max_length=500)  # ← ДОБАВЛЯЕМ
     is_active: bool = True
 
 class ClientCreate(ClientBase):
@@ -21,6 +22,7 @@ class ClientUpdate(BaseModel):
     phone: Optional[str] = Field(None, max_length=20)
     company: Optional[str] = Field(None, max_length=200)
     country: Optional[str] = Field(None, max_length=10)
+    notes: Optional[str] = Field(None, max_length=500)  # ← ДОБАВЛЯЕМ
     is_active: Optional[bool] = None
 
 class ClientResponse(ClientBase):
