@@ -184,7 +184,7 @@ export const ClientsList: React.FC = () => {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="🔍 Поиск..."
+              placeholder="🔍 Поиск по имени, e-mail или номеру телефона"
               className="w-full pl-10 pr-4 py-3 bg-gray-700/50 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent transition-all"
             />
             {searchTerm && (

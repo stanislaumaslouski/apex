@@ -1,11 +1,32 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Link } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Link, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { ClientsList } from './components/ClientsList';
-import { ClientCard } from './pages/ClientCard'; // Добавляем импорт
+import { ClientCard } from './pages/ClientCard';
+import { ClientForm } from './components/ClientForm';
+
+// ✅ Компонент-обертка для редактирования клиента
+function ClientEditWrapper() {
+  const navigate = useNavigate();
+
+  const handleSuccess = () => {
+    navigate('/clients');
+  };
+
+  const handleCancel = () => {
+    navigate('/clients');
+  };
+
+  return (
+    <ClientForm
+      onSuccess={handleSuccess}
+      onCancel={handleCancel}
+    />
+  );
+}
 
 function Navigation() {
   const { user, logout, isAuthenticated } = useAuth();
@@ -78,28 +99,31 @@ function AppContent() {
                 </ProtectedRoute>
               } />
 
-              {/* Список клиентов */}
               <Route path="/clients" element={
                 <ProtectedRoute>
                   <ClientsList />
                 </ProtectedRoute>
               } />
 
-              {/* Карточка клиента - НОВЫЙ МАРШРУТ */}
               <Route path="/clients/:id" element={
                 <ProtectedRoute>
                   <ClientCard />
                 </ProtectedRoute>
               } />
 
-              {/* Создание нового клиента */}
+              {/* ✅ Редактирование клиента с оберткой */}
+              <Route path="/clients/:id/edit" element={
+                <ProtectedRoute>
+                  <ClientEditWrapper />
+                </ProtectedRoute>
+              } />
+
               <Route path="/clients/new" element={
                 <ProtectedRoute>
                   <ClientsList />
                 </ProtectedRoute>
               } />
 
-              {/* 404 - перенаправление на главную */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </div>

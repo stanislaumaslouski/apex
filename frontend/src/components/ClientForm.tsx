@@ -1,19 +1,26 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom'; // ✅ Добавьте импорт
 import { clientsApi, Client } from '../api/api';
 import { countries } from '../data/countries';
 import { PhoneInput } from './PhoneInput';
 
 interface ClientFormProps {
   client?: Client | null;
-  onSuccess: () => void;
-  onCancel: () => void;
+  onSuccess?: () => void;      // ✅ Сделать опциональным
+  onCancel?: () => void;       // ✅ Сделать опциональным
 }
 
 export const ClientForm: React.FC<ClientFormProps> = ({
-  client,
+  client: propClient,
   onSuccess,
   onCancel,
 }) => {
+  const { id } = useParams<{ id: string }>(); // ✅ Получаем ID из URL
+  const navigate = useNavigate();
+  const [client, setClient] = useState<Client | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -21,26 +28,47 @@ export const ClientForm: React.FC<ClientFormProps> = ({
     phone: '',
     country: 'BY',
     company: '',
-    notes: '',        // ← ДОБАВЛЕНО ПОЛЕ notes
+    notes: '',
     is_active: true,
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
+  const isEditing = !!id || !!propClient;
+
+  // ✅ Загрузка данных при редактировании
   useEffect(() => {
-    if (client) {
-      setFormData({
-        first_name: client.first_name || '',
-        last_name: client.last_name || '',
-        email: client.email || '',
-        phone: client.phone || '',
-        country: client.country || 'BY',
-        company: client.company || '',
-        notes: client.notes || '',    // ← ДОБАВЛЕНО
-        is_active: client.is_active !== undefined ? client.is_active : true,
-      });
+    if (id) {
+      loadClient(Number(id));
+    } else if (propClient) {
+      fillForm(propClient);
     }
-  }, [client]);
+  }, [id, propClient]);
+
+  const loadClient = async (clientId: number) => {
+    try {
+      setLoading(true);
+      const response = await clientsApi.getById(clientId);
+      setClient(response.data);
+      fillForm(response.data);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Ошибка загрузки клиента');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fillForm = (clientData: Client) => {
+    setFormData({
+      first_name: clientData.first_name || '',
+      last_name: clientData.last_name || '',
+      email: clientData.email || '',
+      phone: clientData.phone || '',
+      country: clientData.country || 'BY',
+      company: clientData.company || '',
+      notes: clientData.notes || '',
+      is_active: clientData.is_active !== undefined ? clientData.is_active : true,
+    });
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -78,18 +106,23 @@ export const ClientForm: React.FC<ClientFormProps> = ({
         email: formData.email.trim(),
         phone: formData.phone.trim(),
         company: formData.company.trim() || undefined,
-        notes: formData.notes.trim() || undefined,  // ← ДОБАВЛЕНО
+        notes: formData.notes.trim() || undefined,
       };
 
-      if (client) {
-        // Обновление
-        await clientsApi.update(client.id, dataToSend);
+      if (isEditing) {
+        const clientId = client?.id || propClient?.id || Number(id);
+        if (clientId) {
+          await clientsApi.update(clientId, dataToSend);
+        }
       } else {
-        // Создание
         await clientsApi.create(dataToSend);
       }
 
-      onSuccess();
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        navigate('/clients');
+      }
     } catch (err: any) {
       setError(err.response?.data?.detail || err.message || 'Ошибка сохранения клиента');
       console.error(err);
@@ -98,10 +131,22 @@ export const ClientForm: React.FC<ClientFormProps> = ({
     }
   };
 
+  const handleCancel = () => {
+    if (onCancel) {
+      onCancel();
+    } else {
+      navigate('/clients');
+    }
+  };
+
+  if (loading) {
+    return <div className="text-center py-8 text-gray-500">Загрузка данных клиента...</div>;
+  }
+
   return (
     <form onSubmit={handleSubmit} className="bg-gray-800/30 border border-gray-700/50 rounded-xl p-6">
       <h2 className="text-xl font-bold text-white mb-4">
-        {client ? '✏️ Редактирование клиента' : '➕ Новый клиент'}
+        {isEditing ? '✏️ Редактирование клиента' : '➕ Новый клиент'}
       </h2>
 
       {error && (
@@ -204,7 +249,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
         </div>
       </div>
 
-      {/* Дополнительная информация (notes) - НОВОЕ ПОЛЕ */}
+      {/* Дополнительная информация (notes) */}
       <div className="mt-4">
         <label className="block text-sm font-medium text-gray-300 mb-1">
           Дополнительная информация
@@ -243,11 +288,11 @@ export const ClientForm: React.FC<ClientFormProps> = ({
           disabled={loading}
           className="flex-1 px-6 py-3 bg-yellow-400 hover:bg-yellow-500 disabled:bg-yellow-600/50 text-black font-medium rounded-lg transition-all"
         >
-          {loading ? 'Сохранение...' : client ? '💾 Сохранить' : '➕ Создать'}
+          {loading ? 'Сохранение...' : isEditing ? '💾 Сохранить' : '➕ Создать'}
         </button>
         <button
           type="button"
-          onClick={onCancel}
+          onClick={handleCancel}
           className="px-6 py-3 bg-gray-700/50 hover:bg-gray-600/50 text-gray-300 font-medium rounded-lg transition-all"
         >
           Отмена
