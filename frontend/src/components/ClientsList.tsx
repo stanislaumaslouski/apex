@@ -15,9 +15,9 @@ export const ClientsList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+  // user используется в JSX для приветствия, оставляем
   const { user } = useAuth();
 
-  // Обернул loadClients в useCallback
   const loadClients = useCallback(async () => {
     try {
       setLoading(true);
@@ -30,18 +30,15 @@ export const ClientsList: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []); // Пустой массив зависимостей, т.к. функция не зависит от внешних переменных
+  }, []);
 
-  // Обернул filterClients в useCallback
   const filterClients = useCallback(() => {
     let filtered = [...clients];
 
-    // Фильтр по стране
     if (selectedCountry !== 'all') {
       filtered = filtered.filter(client => client.country === selectedCountry);
     }
 
-    // Поиск
     if (searchTerm.trim()) {
       const searchLower = searchTerm.toLowerCase().trim();
       filtered = filtered.filter(client => {
@@ -59,17 +56,15 @@ export const ClientsList: React.FC = () => {
     }
 
     setFilteredClients(filtered);
-  }, [clients, searchTerm, selectedCountry]); // Зависимости: clients, searchTerm, selectedCountry
+  }, [clients, searchTerm, selectedCountry]);
 
-  // Загрузка клиентов при монтировании
   useEffect(() => {
     loadClients();
-  }, [loadClients]); // Теперь зависимость - loadClients (стабильная из-за useCallback)
+  }, [loadClients]);
 
-  // Фильтрация при изменении данных
   useEffect(() => {
     filterClients();
-  }, [filterClients]); // Теперь зависимость - filterClients (стабильная из-за useCallback)
+  }, [filterClients]);
 
   const handleEdit = (client: Client) => {
     setEditingClient(client);
@@ -151,7 +146,6 @@ export const ClientsList: React.FC = () => {
 
   return (
     <div>
-      {/* Шапка */}
       <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-white">Клиенты</h1>
@@ -170,13 +164,11 @@ export const ClientsList: React.FC = () => {
         </div>
       </div>
 
-      {/* Строка поиска и фильтр по странам */}
       <div className="mb-6 flex flex-wrap gap-4">
-        {/* Поле поиска */}
         <div className="flex-1 min-w-[200px]">
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
@@ -198,7 +190,6 @@ export const ClientsList: React.FC = () => {
           </div>
         </div>
 
-        {/* Фильтр по странам */}
         <div className="min-w-[200px]">
           <select
             value={selectedCountry}
@@ -215,7 +206,6 @@ export const ClientsList: React.FC = () => {
         </div>
       </div>
 
-      {/* Информация о результатах */}
       <div className="mb-4 flex justify-between items-center text-sm text-gray-400">
         <span>
           {searchTerm || selectedCountry !== 'all' ? (
@@ -229,14 +219,12 @@ export const ClientsList: React.FC = () => {
         )}
       </div>
 
-      {/* Ошибки */}
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg mb-4">
           {error}
         </div>
       )}
 
-      {/* Форма */}
       {showForm && (
         <div className="mb-6">
           <ClientForm
@@ -247,7 +235,6 @@ export const ClientsList: React.FC = () => {
         </div>
       )}
 
-      {/* Таблица */}
       {filteredClients.length === 0 ? (
         <div className="text-center py-12 bg-gray-800/30 border border-gray-700/50 rounded-xl">
           <div className="text-5xl mb-4">🔍</div>
@@ -334,7 +321,7 @@ export const ClientsList: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm space-x-3">
                       <button
                         onClick={(e) => {
-                          e.stopPropagation(); // Останавливаем всплытие, чтобы не переходить на карточку
+                          e.stopPropagation();
                           handleEdit(client);
                         }}
                         className="text-yellow-400 hover:text-yellow-300 transition-colors"
@@ -343,7 +330,7 @@ export const ClientsList: React.FC = () => {
                       </button>
                       <button
                         onClick={(e) => {
-                          e.stopPropagation(); // Останавливаем всплытие, чтобы не переходить на карточку
+                          e.stopPropagation();
                           handleDelete(client.id);
                         }}
                         className="text-red-400 hover:text-red-300 transition-colors"

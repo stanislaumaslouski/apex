@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom'; // ✅ Добавьте импорт
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { clientsApi, Client } from '../api/api';
 import { countries } from '../data/countries';
 import { PhoneInput } from './PhoneInput';
 
 interface ClientFormProps {
   client?: Client | null;
-  onSuccess?: () => void;      // ✅ Сделать опциональным
-  onCancel?: () => void;       // ✅ Сделать опциональным
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }
 
 export const ClientForm: React.FC<ClientFormProps> = ({
@@ -15,7 +15,7 @@ export const ClientForm: React.FC<ClientFormProps> = ({
   onSuccess,
   onCancel,
 }) => {
-  const { id } = useParams<{ id: string }>(); // ✅ Получаем ID из URL
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(false);
@@ -34,16 +34,20 @@ export const ClientForm: React.FC<ClientFormProps> = ({
 
   const isEditing = !!id || !!propClient;
 
-  // ✅ Загрузка данных при редактировании
-  useEffect(() => {
-    if (id) {
-      loadClient(Number(id));
-    } else if (propClient) {
-      fillForm(propClient);
-    }
-  }, [id, propClient]);
+  const fillForm = useCallback((clientData: Client) => {
+    setFormData({
+      first_name: clientData.first_name || '',
+      last_name: clientData.last_name || '',
+      email: clientData.email || '',
+      phone: clientData.phone || '',
+      country: clientData.country || 'BY',
+      company: clientData.company || '',
+      notes: clientData.notes || '',
+      is_active: clientData.is_active !== undefined ? clientData.is_active : true,
+    });
+  }, []);
 
-  const loadClient = async (clientId: number) => {
+  const loadClient = useCallback(async (clientId: number) => {
     try {
       setLoading(true);
       const response = await clientsApi.getById(clientId);
@@ -55,20 +59,15 @@ export const ClientForm: React.FC<ClientFormProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [fillForm]);
 
-  const fillForm = (clientData: Client) => {
-    setFormData({
-      first_name: clientData.first_name || '',
-      last_name: clientData.last_name || '',
-      email: clientData.email || '',
-      phone: clientData.phone || '',
-      country: clientData.country || 'BY',
-      company: clientData.company || '',
-      notes: clientData.notes || '',
-      is_active: clientData.is_active !== undefined ? clientData.is_active : true,
-    });
-  };
+  useEffect(() => {
+    if (id) {
+      loadClient(Number(id));
+    } else if (propClient) {
+      fillForm(propClient);
+    }
+  }, [id, propClient, loadClient, fillForm]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
@@ -88,7 +87,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({
     setError(null);
 
     try {
-      // Валидация
       if (!formData.first_name.trim() || !formData.last_name.trim()) {
         throw new Error('Имя и фамилия обязательны для заполнения');
       }
@@ -156,7 +154,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Имя */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">
             Имя <span className="text-yellow-400">*</span>
@@ -172,7 +169,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({
           />
         </div>
 
-        {/* Фамилия */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">
             Фамилия <span className="text-yellow-400">*</span>
@@ -188,7 +184,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({
           />
         </div>
 
-        {/* Email */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">
             Email <span className="text-yellow-400">*</span>
@@ -204,7 +199,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({
           />
         </div>
 
-        {/* Телефон */}
         <div>
           <PhoneInput
             value={formData.phone}
@@ -214,7 +208,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({
           />
         </div>
 
-        {/* Страна */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">
             Страна
@@ -233,7 +226,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({
           </select>
         </div>
 
-        {/* Компания */}
         <div>
           <label className="block text-sm font-medium text-gray-300 mb-1">
             Компания
@@ -249,7 +241,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({
         </div>
       </div>
 
-      {/* Дополнительная информация (notes) */}
       <div className="mt-4">
         <label className="block text-sm font-medium text-gray-300 mb-1">
           Дополнительная информация
@@ -267,7 +258,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({
         </p>
       </div>
 
-      {/* Статус */}
       <div className="mt-4 flex items-center gap-3">
         <input
           type="checkbox"
@@ -281,7 +271,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({
         </label>
       </div>
 
-      {/* Кнопки */}
       <div className="flex gap-3 mt-6">
         <button
           type="submit"

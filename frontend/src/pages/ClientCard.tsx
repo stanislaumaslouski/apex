@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { clientsApi, Client } from '../api/api';
 import { countries } from '../data/countries';
@@ -10,11 +10,8 @@ export const ClientCard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadClient();
-  }, [id]);
-
-  const loadClient = async () => {
+  const loadClient = useCallback(async () => {
+    if (!id) return;
     try {
       setLoading(true);
       const response = await clientsApi.getById(Number(id));
@@ -26,7 +23,11 @@ export const ClientCard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    loadClient();
+  }, [loadClient]);
 
   const formatPhoneNumber = (phone: string): string => {
     if (!phone) return '-';
@@ -67,7 +68,6 @@ export const ClientCard: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Кнопка назад */}
       <button
         onClick={() => navigate('/clients')}
         className="mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
@@ -78,9 +78,7 @@ export const ClientCard: React.FC = () => {
         Назад к списку клиентов
       </button>
 
-      {/* Карточка клиента */}
       <div className="bg-gray-800/50 border border-gray-700/50 rounded-xl overflow-hidden">
-        {/* Заголовок карточки */}
         <div className="bg-gradient-to-r from-yellow-400/10 to-transparent px-6 py-4 border-b border-gray-700/50">
           <h1 className="text-2xl font-bold text-white">
             {client.first_name} {client.last_name}
@@ -93,9 +91,7 @@ export const ClientCard: React.FC = () => {
           </p>
         </div>
 
-        {/* Основная информация */}
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Левая колонка */}
           <div className="space-y-4">
             <div>
               <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
@@ -132,7 +128,6 @@ export const ClientCard: React.FC = () => {
             </div>
           </div>
 
-          {/* Правая колонка — УБРАН ЛИШНИЙ ЗАГОЛОВОК */}
           <div className="space-y-4">
             <div className="space-y-3">
               <div>
@@ -149,7 +144,6 @@ export const ClientCard: React.FC = () => {
                 <p className="text-sm text-gray-400">Дата создания</p>
                 <p className="text-white">{formatDate(client.created_at)}</p>
               </div>
-              {/* Показываем notes только если оно есть */}
               {client.notes && client.notes.trim() && (
                 <div>
                   <p className="text-sm text-gray-400">Дополнительная информация</p>
@@ -162,7 +156,6 @@ export const ClientCard: React.FC = () => {
           </div>
         </div>
 
-        {/* Действия */}
         <div className="px-6 py-4 bg-gray-900/30 border-t border-gray-700/50 flex gap-3">
           <button
             onClick={() => navigate(`/clients/${client.id}/edit`)}
