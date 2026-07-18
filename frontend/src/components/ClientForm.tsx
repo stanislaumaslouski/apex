@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { clientsApi, Client } from '../api/api';
-import { countries } from '../data/countries';
 import { PhoneInput } from './PhoneInput';
-import { CountrySelect } from './CountrySelect';  // ✅ Добавьте импорт
+import { CountrySelect } from './CountrySelect';
 
 interface ClientFormProps {
   client?: Client | null;
@@ -213,7 +212,6 @@ export const ClientForm: React.FC<ClientFormProps> = ({
           />
         </div>
 
-        {/* ✅ Используем CountrySelect вместо обычного select */}
         <div>
           <CountrySelect
             value={formData.country}
